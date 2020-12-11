@@ -22,6 +22,8 @@ import { RadioButton } from "@babylonjs/gui/2D/controls/radioButton"
 import { StackPanel } from "@babylonjs/gui/2D/controls/stackPanel"
 import { Control } from "@babylonjs/gui/2D/controls/control"
 import { Slider } from "@babylonjs/gui/2D/controls/sliders/slider"
+import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader"
+import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 
 // Side effects
 import "@babylonjs/core/Helpers/sceneHelpers";
@@ -39,6 +41,8 @@ class Game
 
     private configurableMesh: Mesh | null;
 
+    private fiveProbeMeshes: AbstractMesh[];
+
     constructor()
     {
         // Get the canvas element 
@@ -55,6 +59,8 @@ class Game
         this.rightController = null;
 
         this.configurableMesh = null;
+
+        this.fiveProbeMeshes = [];
     }
 
     start() : void 
@@ -95,13 +101,15 @@ class Game
         const environment = this.scene.createDefaultEnvironment({
             createGround: true,
             groundSize: 100,
-            skyboxSize: 50,
-            skyboxColor: new Color3(0, 0, 0)
+            createSkybox: false
+            // skyboxSize: 50,
+            // skyboxColor: new Color3(0, 0, 0)
         });
 
         // Make sure the ground and skybox are not pickable!
         environment!.ground!.isPickable = false;
-        environment!.skybox!.isPickable = false;
+        environment!.ground!.visibility = 0;
+        // environment!.skybox!.isPickable = false;
 
         // Creates the XR experience helper
         const xrHelper = await this.scene.createDefaultXRExperienceAsync({});
@@ -133,234 +141,273 @@ class Game
             }
         });
 
+
+        // SceneLoader.ImportMesh("", "assets/models/", "FiveProbeMachine.glb", this.scene, (meshes) => {
+        //     meshes[0].name = "fiveProbe"
+        //     meshes[0].position = new Vector3(5, 3, 5);
+        //     meshes[0].scaling = new Vector3(0.05, 0.05, 0.05);
+        //     // meshes[0].scaling = new Vector3(100, 100, 100);
+        //     meshes.forEach((mesh) => {
+        //         console.log("loaded ", mesh.name);
+        //         this.fiveProbeMeshes.push(mesh)
+        //     })
+        // });
+
+        SceneLoader.ImportMesh("", "assets/models/", "MachineModel.glb", this.scene, (meshes) => {
+            meshes[0].name = "machineModel"
+            meshes[0].position = new Vector3(1, 1, 1);
+            meshes[0].scaling = new Vector3(0.001, 0.001, 0.001);
+            meshes[0].rotation = new Vector3(-Math.PI / 2, 0, 0)
+            // meshes[0].scaling = new Vector3(100, 100, 100);
+            meshes.forEach((mesh) => {
+                console.log("loaded ", mesh.name);
+                this.fiveProbeMeshes.push(mesh)
+            })
+        });
+
+        SceneLoader.ImportMesh("", "assets/models/", "Head.glb", this.scene, (meshes) => {
+            meshes[0].name = "head"
+            meshes[0].position = new Vector3(1, 1, 1);
+            meshes[0].scaling = new Vector3(0.001, 0.001, 0.001);
+            meshes[0].rotation = new Vector3(0, 0, Math.PI)
+            // meshes[0].scaling = new Vector3(100, 100, 100);
+            meshes.forEach((mesh) => {
+                console.log("loaded ", mesh.name);
+                this.fiveProbeMeshes.push(mesh)
+            })
+        });
+
+
+
+
         // Create a parent transform
-        var textTransform = new TransformNode("textTransform");
-        textTransform.rotation.y = 270 * Math.PI / 180;
+        // var textTransform = new TransformNode("textTransform");
+        // textTransform.rotation.y = 270 * Math.PI / 180;
 
-        // Create a plane for a text block
-        var staticTextPlane = MeshBuilder.CreatePlane("textPlane", {width: 10, height: 5}, this.scene);
-        staticTextPlane.position = new Vector3(0, 7, 8);
-        staticTextPlane.isPickable = false;
-        staticTextPlane.parent = textTransform;
+        // // Create a plane for a text block
+        // var staticTextPlane = MeshBuilder.CreatePlane("textPlane", {width: 10, height: 5}, this.scene);
+        // staticTextPlane.position = new Vector3(0, 7, 8);
+        // staticTextPlane.isPickable = false;
+        // staticTextPlane.parent = textTransform;
 
-        // Create a dynamic texture for the text block
-        var staticTextTexture = AdvancedDynamicTexture.CreateForMesh(staticTextPlane, 1000, 500);
-        staticTextTexture.background = "#414163";
+        // // Create a dynamic texture for the text block
+        // var staticTextTexture = AdvancedDynamicTexture.CreateForMesh(staticTextPlane, 1000, 500);
+        // staticTextTexture.background = "#414163";
 
-        // Create a static text block
-        var staticText = new TextBlock();
-        staticText.text = "";
-        staticText.color = "white";
-        staticText.fontSize = 32;
-        staticText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_LEFT;
-        staticText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
-        staticTextTexture.addControl(staticText);
+        // // Create a static text block
+        // var staticText = new TextBlock();
+        // staticText.text = "";
+        // staticText.color = "white";
+        // staticText.fontSize = 32;
+        // staticText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_LEFT;
+        // staticText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
+        // staticTextTexture.addControl(staticText);
 
-        // Create a plane for a virtual keyboard
-        var keyboardPlane = MeshBuilder.CreatePlane("keyboardPlane", {}, this.scene);
-        keyboardPlane.position = new Vector3(0, 1.6, 1);
-        keyboardPlane.parent = textTransform;
+        // // Create a plane for a virtual keyboard
+        // var keyboardPlane = MeshBuilder.CreatePlane("keyboardPlane", {}, this.scene);
+        // keyboardPlane.position = new Vector3(0, 1.6, 1);
+        // keyboardPlane.parent = textTransform;
 
-        // Create a dynamic texture for the virtual keyboard
-        var keyboardTexture = AdvancedDynamicTexture.CreateForMesh(keyboardPlane, 1024, 1024);
+        // // Create a dynamic texture for the virtual keyboard
+        // var keyboardTexture = AdvancedDynamicTexture.CreateForMesh(keyboardPlane, 1024, 1024);
 
-        // Create a keyboard input text field
-        var keyboardInput = new InputText(); 
-        keyboardInput.top = -260;
-        keyboardInput.width = 1;
-        keyboardInput.height = "80px";
-        keyboardInput.fontSize = 36;
-        keyboardInput.color = "white";
-        keyboardInput.background = "#070707";    
-		keyboardTexture.addControl(keyboardInput);
+        // // Create a keyboard input text field
+        // var keyboardInput = new InputText(); 
+        // keyboardInput.top = -260;
+        // keyboardInput.width = 1;
+        // keyboardInput.height = "80px";
+        // keyboardInput.fontSize = 36;
+        // keyboardInput.color = "white";
+        // keyboardInput.background = "#070707";    
+		// keyboardTexture.addControl(keyboardInput);
 
-        // Create a virtual keyboard
-        var virtualKeyboard = VirtualKeyboard.CreateDefaultLayout("virtualKeyboard");
-        virtualKeyboard.scaleX = 2.0;
-        virtualKeyboard.scaleY = 2.0;
-        keyboardTexture.addControl(virtualKeyboard);
+        // // Create a virtual keyboard
+        // var virtualKeyboard = VirtualKeyboard.CreateDefaultLayout("virtualKeyboard");
+        // virtualKeyboard.scaleX = 2.0;
+        // virtualKeyboard.scaleY = 2.0;
+        // keyboardTexture.addControl(virtualKeyboard);
 
-        // This connects automatically hides the keyboard
-        //virtualKeyboard.connect(keyboardInput);
+        // // This connects automatically hides the keyboard
+        // //virtualKeyboard.connect(keyboardInput);
 
-        // This keeps the keyboard visible
-        virtualKeyboard.onKeyPressObservable.add((key) => {
-            switch(key)
-            {
-                // Backspace
-                case '\u2190':
-                    keyboardInput.processKey(8);
-                    break;
+        // // This keeps the keyboard visible
+        // virtualKeyboard.onKeyPressObservable.add((key) => {
+        //     switch(key)
+        //     {
+        //         // Backspace
+        //         case '\u2190':
+        //             keyboardInput.processKey(8);
+        //             break;
 
-                // Shift
-                case '\u21E7':
-                    virtualKeyboard.shiftState = virtualKeyboard.shiftState == 0 ? 1 : 0;
-                    virtualKeyboard.applyShiftState(virtualKeyboard.shiftState);
-                    break;
+        //         // Shift
+        //         case '\u21E7':
+        //             virtualKeyboard.shiftState = virtualKeyboard.shiftState == 0 ? 1 : 0;
+        //             virtualKeyboard.applyShiftState(virtualKeyboard.shiftState);
+        //             break;
 
-                // Enter
-                case '\u21B5':
-                    keyboardInput.processKey(13);
-                    staticText.text += "\n> " + keyboardInput.text;
-                    break;  
+        //         // Enter
+        //         case '\u21B5':
+        //             keyboardInput.processKey(13);
+        //             staticText.text += "\n> " + keyboardInput.text;
+        //             break;  
                 
-                default:
-                    keyboardInput.processKey(-1, virtualKeyboard.shiftState == 0 ? key : key.toUpperCase());
-            }
-        });
+        //         default:
+        //             keyboardInput.processKey(-1, virtualKeyboard.shiftState == 0 ? key : key.toUpperCase());
+        //     }
+        // });
 
-        // Create a parent transform for the object configuration panel
-        var configTransform = new TransformNode("textTransform");
+        // // Create a parent transform for the object configuration panel
+        // var configTransform = new TransformNode("textTransform");
 
-        // Create a plane for the object configuration panel
-        var configPlane = MeshBuilder.CreatePlane("configPlane", {width: 1.5, height: .5}, this.scene);
-        configPlane.position = new Vector3(0, 2, 1);
-        configPlane.parent = configTransform;
+        // // Create a plane for the object configuration panel
+        // var configPlane = MeshBuilder.CreatePlane("configPlane", {width: 1.5, height: .5}, this.scene);
+        // configPlane.position = new Vector3(0, 2, 1);
+        // configPlane.parent = configTransform;
 
-        // Create a dynamic texture the object configuration panel
-        var configTexture = AdvancedDynamicTexture.CreateForMesh(configPlane, 1500, 500);
-        configTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
+        // // Create a dynamic texture the object configuration panel
+        // var configTexture = AdvancedDynamicTexture.CreateForMesh(configPlane, 1500, 500);
+        // configTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
 
-        // Create a stack panel for the columns
-        var columnPanel = new StackPanel();
-        columnPanel.isVertical = false;
-        columnPanel.widthInPixels = 1400;
-        columnPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        columnPanel.paddingLeftInPixels = 50;
-        columnPanel.paddingTopInPixels = 50;
-        configTexture.addControl(columnPanel);
+        // // Create a stack panel for the columns
+        // var columnPanel = new StackPanel();
+        // columnPanel.isVertical = false;
+        // columnPanel.widthInPixels = 1400;
+        // columnPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        // columnPanel.paddingLeftInPixels = 50;
+        // columnPanel.paddingTopInPixels = 50;
+        // configTexture.addControl(columnPanel);
 
-        // Create a stack panel for the radio buttons
-        var radioButtonPanel = new StackPanel();
-        radioButtonPanel.widthInPixels = 400;
-        radioButtonPanel.isVertical = true;
-        radioButtonPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
-        columnPanel.addControl(radioButtonPanel);
+        // // Create a stack panel for the radio buttons
+        // var radioButtonPanel = new StackPanel();
+        // radioButtonPanel.widthInPixels = 400;
+        // radioButtonPanel.isVertical = true;
+        // radioButtonPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        // columnPanel.addControl(radioButtonPanel);
 
-        // Create radio buttons for changing the object type
-        var radioButton1 = new RadioButton("radioButton1");
-        radioButton1.width = "50px";
-        radioButton1.height = "50px";
-        radioButton1.color = "lightblue";
-        radioButton1.background = "black";
+        // // Create radio buttons for changing the object type
+        // var radioButton1 = new RadioButton("radioButton1");
+        // radioButton1.width = "50px";
+        // radioButton1.height = "50px";
+        // radioButton1.color = "lightblue";
+        // radioButton1.background = "black";
         
-        var radioButton2 = new RadioButton("radioButton1");
-        radioButton2.width = "50px";
-        radioButton2.height = "50px";
-        radioButton2.color = "lightblue";
-        radioButton2.background = "black";
+        // var radioButton2 = new RadioButton("radioButton1");
+        // radioButton2.width = "50px";
+        // radioButton2.height = "50px";
+        // radioButton2.color = "lightblue";
+        // radioButton2.background = "black";
 
-        // Text headers for the radio buttons
-        var radioButton1Header = Control.AddHeader(radioButton1, "box", "500px", {isHorizontal: true, controlFirst: true});
-        radioButton1Header.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        radioButton1Header.height = "75px";
-        radioButton1Header.fontSize = "48px";
-        radioButton1Header.color = "white";
-        radioButtonPanel.addControl(radioButton1Header);
+        // // Text headers for the radio buttons
+        // var radioButton1Header = Control.AddHeader(radioButton1, "box", "500px", {isHorizontal: true, controlFirst: true});
+        // radioButton1Header.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        // radioButton1Header.height = "75px";
+        // radioButton1Header.fontSize = "48px";
+        // radioButton1Header.color = "white";
+        // radioButtonPanel.addControl(radioButton1Header);
 
-        var radioButton2Header = Control.AddHeader(radioButton2, "sphere", "500px", {isHorizontal: true, controlFirst: true});
-        radioButton2Header.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        radioButton2Header.height = "75px";
-        radioButton2Header.fontSize = "48px";
-        radioButton2Header.color = "white";
-        radioButtonPanel.addControl(radioButton2Header);
+        // var radioButton2Header = Control.AddHeader(radioButton2, "sphere", "500px", {isHorizontal: true, controlFirst: true});
+        // radioButton2Header.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        // radioButton2Header.height = "75px";
+        // radioButton2Header.fontSize = "48px";
+        // radioButton2Header.color = "white";
+        // radioButtonPanel.addControl(radioButton2Header);
 
-        // Create a transform node to hold the configurable mesh
-        var configurableMeshTransform = new TransformNode("configurableMeshTransform", this.scene);
-        configurableMeshTransform.position = new Vector3(0, 1, 4);
+        // // Create a transform node to hold the configurable mesh
+        // var configurableMeshTransform = new TransformNode("configurableMeshTransform", this.scene);
+        // configurableMeshTransform.position = new Vector3(0, 1, 4);
 
-        // Event handlers for the radio buttons
-        radioButton1.onIsCheckedChangedObservable.add( (state) => {
-            if(state)
-            {
-                if(this.configurableMesh)
-                {
-                    this.configurableMesh.dispose();
-                }
-                this.configurableMesh = MeshBuilder.CreateBox("configurableMesh", {size: 1}, this.scene);
-                this.configurableMesh.parent = configurableMeshTransform;
+        // // Event handlers for the radio buttons
+        // radioButton1.onIsCheckedChangedObservable.add( (state) => {
+        //     if(state)
+        //     {
+        //         if(this.configurableMesh)
+        //         {
+        //             this.configurableMesh.dispose();
+        //         }
+        //         this.configurableMesh = MeshBuilder.CreateBox("configurableMesh", {size: 1}, this.scene);
+        //         this.configurableMesh.parent = configurableMeshTransform;
             
-            }
-        });   
+        //     }
+        // });   
 
-        radioButton2.onIsCheckedChangedObservable.add( (state) => {
-            if(state)
-            {
-                if(this.configurableMesh)
-                {
-                    this.configurableMesh.dispose();
-                }
-                this.configurableMesh = MeshBuilder.CreateSphere("configurableMesh", {diameter: 1}, this.scene);
-                this.configurableMesh.parent = configurableMeshTransform;
-            }
-        }); 
+        // radioButton2.onIsCheckedChangedObservable.add( (state) => {
+        //     if(state)
+        //     {
+        //         if(this.configurableMesh)
+        //         {
+        //             this.configurableMesh.dispose();
+        //         }
+        //         this.configurableMesh = MeshBuilder.CreateSphere("configurableMesh", {diameter: 1}, this.scene);
+        //         this.configurableMesh.parent = configurableMeshTransform;
+        //     }
+        // }); 
 
-        // Create a stack panel for the radio buttons
-        var sliderPanel = new StackPanel();
-        sliderPanel.widthInPixels = 500;
-        sliderPanel.isVertical = true;
-        sliderPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
-        columnPanel.addControl(sliderPanel);
+        // // Create a stack panel for the radio buttons
+        // var sliderPanel = new StackPanel();
+        // sliderPanel.widthInPixels = 500;
+        // sliderPanel.isVertical = true;
+        // sliderPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        // columnPanel.addControl(sliderPanel);
 
-        // Create sliders for the x, y, and z rotation
-        var xSlider = new Slider();
-        xSlider.minimum = 0;
-        xSlider.maximum = 360;
-        xSlider.value = 0;
-        xSlider.color = "lightblue";
-        xSlider.height = "50px";
-        xSlider.width = "500px";
+        // // Create sliders for the x, y, and z rotation
+        // var xSlider = new Slider();
+        // xSlider.minimum = 0;
+        // xSlider.maximum = 360;
+        // xSlider.value = 0;
+        // xSlider.color = "lightblue";
+        // xSlider.height = "50px";
+        // xSlider.width = "500px";
 
-        var ySlider = new Slider();
-        ySlider.minimum = 0;
-        ySlider.maximum = 360;
-        ySlider.value = 0;
-        ySlider.color = "lightblue";
-        ySlider.height = "50px";
-        ySlider.width = "500px";
+        // var ySlider = new Slider();
+        // ySlider.minimum = 0;
+        // ySlider.maximum = 360;
+        // ySlider.value = 0;
+        // ySlider.color = "lightblue";
+        // ySlider.height = "50px";
+        // ySlider.width = "500px";
 
-        var zSlider = new Slider();
-        zSlider.minimum = 0;
-        zSlider.maximum = 360;
-        zSlider.value = 0;
-        zSlider.color = "lightblue";
-        zSlider.height = "50px";
-        zSlider.width = "500px";
+        // var zSlider = new Slider();
+        // zSlider.minimum = 0;
+        // zSlider.maximum = 360;
+        // zSlider.value = 0;
+        // zSlider.color = "lightblue";
+        // zSlider.height = "50px";
+        // zSlider.width = "500px";
 
-        // Create text headers for the sliders
-        var xSliderHeader = Control.AddHeader(xSlider, "x", "50px", {isHorizontal: true, controlFirst: false});
-        xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        xSliderHeader.height = "75px";
-        xSliderHeader.fontSize = "48px";
-        xSliderHeader.color = "white";
-        sliderPanel.addControl(xSliderHeader);
+        // // Create text headers for the sliders
+        // var xSliderHeader = Control.AddHeader(xSlider, "x", "50px", {isHorizontal: true, controlFirst: false});
+        // xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        // xSliderHeader.height = "75px";
+        // xSliderHeader.fontSize = "48px";
+        // xSliderHeader.color = "white";
+        // sliderPanel.addControl(xSliderHeader);
 
-        var ySliderHeader = Control.AddHeader(ySlider, "y", "50px", {isHorizontal: true, controlFirst: false});
-        ySliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        ySliderHeader.height = "75px";
-        ySliderHeader.fontSize = "48px";
-        ySliderHeader.color = "white";
-        sliderPanel.addControl(ySliderHeader);
+        // var ySliderHeader = Control.AddHeader(ySlider, "y", "50px", {isHorizontal: true, controlFirst: false});
+        // ySliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        // ySliderHeader.height = "75px";
+        // ySliderHeader.fontSize = "48px";
+        // ySliderHeader.color = "white";
+        // sliderPanel.addControl(ySliderHeader);
 
-        var zSliderHeader = Control.AddHeader(zSlider, "z", "50px", {isHorizontal: true, controlFirst: false});
-        zSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        zSliderHeader.height = "75px";
-        zSliderHeader.fontSize = "48px";
-        zSliderHeader.color = "white";
-        sliderPanel.addControl(zSliderHeader);
+        // var zSliderHeader = Control.AddHeader(zSlider, "z", "50px", {isHorizontal: true, controlFirst: false});
+        // zSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        // zSliderHeader.height = "75px";
+        // zSliderHeader.fontSize = "48px";
+        // zSliderHeader.color = "white";
+        // sliderPanel.addControl(zSliderHeader);
 
-        // Event handlers for the sliders
-        xSlider.onValueChangedObservable.add((value) => {
-            configurableMeshTransform.rotation.x = value * Math.PI / 180;
-        });
+        // // Event handlers for the sliders
+        // xSlider.onValueChangedObservable.add((value) => {
+        //     configurableMeshTransform.rotation.x = value * Math.PI / 180;
+        // });
 
-        ySlider.onValueChangedObservable.add((value) => {
-            configurableMeshTransform.rotation.y = value * Math.PI / 180;
-        });
+        // ySlider.onValueChangedObservable.add((value) => {
+        //     configurableMeshTransform.rotation.y = value * Math.PI / 180;
+        // });
 
-        zSlider.onValueChangedObservable.add((value) => {
-            configurableMeshTransform.rotation.z = value * Math.PI / 180;
-        });
+        // zSlider.onValueChangedObservable.add((value) => {
+        //     configurableMeshTransform.rotation.z = value * Math.PI / 180;
+        // });
 
 
         this.scene.debugLayer.show(); 
