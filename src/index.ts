@@ -5,7 +5,7 @@
 
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
-import { Vector3, Color3, Color4 } from "@babylonjs/core/Maths/math";
+import { Vector3, Color3, Color4, Quaternion } from "@babylonjs/core/Maths/math";
 import { UniversalCamera } from "@babylonjs/core/Cameras/universalCamera";
 import { Logger } from "@babylonjs/core/Misc/logger";
 import { WebXRInputSource } from "@babylonjs/core/XR/webXRInputSource";
@@ -28,6 +28,7 @@ import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 // Side effects
 import "@babylonjs/core/Helpers/sceneHelpers";
 import "@babylonjs/inspector";
+import { WebXRControllerComponent } from "@babylonjs/core/XR/motionController/webXRControllerComponent";
 
 class Game 
 { 
@@ -411,6 +412,29 @@ class Game
 
 
         this.scene.debugLayer.show(); 
+    }
+
+    private processControllerInput() {
+        this.onRightThumbstick(this.rightController ?.motionController ?.getComponent("xr-standard-thumbstick"));
+    }
+
+    private onRightThumbstick(component?: WebXRControllerComponent) {
+        if (component ?.changes.axes) {
+            // Get the current hand direction
+            var directionVector = this.rightController!.pointer.forward;
+
+            var moveDistance = -component!.axes.y * (this.engine.getDeltaTime() / 1000) * 3;
+
+            // Translate the camera forward
+            this.xrCamera!.position.addInPlace(directionVector.scale(moveDistance));
+
+            // Use delta time to calculate the turn angle based on speed of 60 degrees/sec
+            var turnAngle = component!.axes.x * (this.engine.getDeltaTime() / 1000) * 60;
+
+            // Smooth turning
+            var cameraRotation = Quaternion.FromEulerAngles(0, turnAngle * Math.PI / 180, 0);
+            this.xrCamera!.rotationQuaternion.multiplyInPlace(cameraRotation);
+        }
     }
 
     // The main update loop will be executed once per frame before the scene is rendered
