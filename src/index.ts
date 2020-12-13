@@ -421,12 +421,13 @@ class Game
     private onRightThumbstick(component?: WebXRControllerComponent) {
         if (component ?.changes.axes) {
             // Get the current hand direction
-            var directionVector = this.rightController!.pointer.forward;
+            var leftDirectionVector = this.leftController!.pointer.forward;
+            var rightDirectionVector = this.rightController!.pointer.forward;
 
             var moveDistance = -component!.axes.y * (this.engine.getDeltaTime() / 1000) * 3;
 
             // Translate the camera forward
-            this.xrCamera!.position.addInPlace(directionVector.scale(moveDistance));
+            this.xrCamera!.position.addInPlace(rightDirectionVector.scale(moveDistance));
 
             // Use delta time to calculate the turn angle based on speed of 60 degrees/sec
             var turnAngle = component!.axes.x * (this.engine.getDeltaTime() / 1000) * 60;
