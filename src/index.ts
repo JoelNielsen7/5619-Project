@@ -424,13 +424,15 @@ class Game
             var leftDirectionVector = this.leftController!.pointer.forward;
             var rightDirectionVector = this.rightController!.pointer.forward;
 
-            var moveDistance = -component!.axes.y * (this.engine.getDeltaTime() / 1000) * 3;
+            var sumDirectionVector = leftDirectionVector.add(rightDirectionVector).normalize();
+
+            var moveDistance = -component!.axes.y * (this.engine.getDeltaTime() / 1000) * 0.5;
 
             // Translate the camera forward
-            this.xrCamera!.position.addInPlace(rightDirectionVector.scale(moveDistance));
+            this.xrCamera!.position.addInPlace(sumDirectionVector.scale(moveDistance));
 
             // Use delta time to calculate the turn angle based on speed of 60 degrees/sec
-            var turnAngle = component!.axes.x * (this.engine.getDeltaTime() / 1000) * 60;
+            var turnAngle = component!.axes.x * (this.engine.getDeltaTime() / 1000) * 45;
 
             // Smooth turning
             var cameraRotation = Quaternion.FromEulerAngles(0, turnAngle * Math.PI / 180, 0);
@@ -441,7 +443,7 @@ class Game
     // The main update loop will be executed once per frame before the scene is rendered
     private update() : void
     {
- 
+        this.processControllerInput();
     }
 
 }
