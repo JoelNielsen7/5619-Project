@@ -481,7 +481,7 @@ class Game
 
         // Create a stack panel for the radio buttons
         var radioButtonPanel = new StackPanel();
-        radioButtonPanel.widthInPixels = 400;
+        radioButtonPanel.widthInPixels = 500;
         radioButtonPanel.isVertical = true;
         radioButtonPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
         columnPanel.addControl(radioButtonPanel);
@@ -539,10 +539,14 @@ class Game
         // Create a stack panel for the radio buttons
         var sliderPanel = new StackPanel();
         sliderPanel.widthInPixels = 800;
+        sliderPanel.heightInPixels = 120;
         sliderPanel.isVertical = true;
         sliderPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        sliderPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        sliderPanel.name = "sliderPanel";
         columnPanel.addControl(sliderPanel);
         this.sliderPanel = sliderPanel;
+
 
         // Create sliders for the x, y, and z rotation
         var xSlider = new Slider();
@@ -550,8 +554,13 @@ class Game
         xSlider.maximum = 360;
         xSlider.value = 0;
         xSlider.color = "lightblue";
-        xSlider.height = "50px";
+        xSlider.height = "60px";
         xSlider.width = "500px";
+        xSlider.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        xSlider.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        xSlider.barOffset = "10px";
+        xSlider.top = "60px";
+        xSlider.name = "xSlider";
         // xSlider.paddingTop
 
         
@@ -573,13 +582,18 @@ class Game
         // zSlider.width = "500px";
 
         // Create text headers for the sliders
-        var xSliderHeader = Control.AddHeader(xSlider, "x", "50px", {isHorizontal: true, controlFirst: false});
-        xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        xSliderHeader.height = "75px";
+        var xSliderHeader = new TextBlock("sliderHeader", "xxxxxxxxxxx"); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
+        xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
         xSliderHeader.color = "white";
-        xSliderHeader.text = "test"
+        xSliderHeader.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        xSliderHeader.left = "0px";
+        xSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        xSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+
         sliderPanel.addControl(xSliderHeader);
+        sliderPanel.addControl(xSlider);
 
 
         // var ySliderHeader = Control.AddHeader(ySlider, "y", "50px", {isHorizontal: true, controlFirst: false});
@@ -924,13 +938,18 @@ class Game
                 }
             }
         }
-        var xSliderHeader = Control.AddHeader(this.slider!, component.name, "50px", {isHorizontal: true, controlFirst: false});
-        xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        xSliderHeader.height = "75px";
+        var xSliderHeader = new TextBlock("xSliderHeader", component.name); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
+        xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
         xSliderHeader.color = "white";
+        xSliderHeader.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        xSliderHeader.left = "0px";
+        xSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        xSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
         // xSliderHeader.text = "test"
         this.sliderPanel!.addControl(xSliderHeader);
+        this.sliderPanel!.addControl(this.slider);
     }
     // The main update loop will be executed once per frame before the scene is rendered
     private update() : void
