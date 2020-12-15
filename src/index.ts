@@ -5,7 +5,7 @@
 
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
-import { Vector3, Color3, Color4, Vector2 } from "@babylonjs/core/Maths/math";
+import { Vector3, Color3, Color4, Vector2, } from "@babylonjs/core/Maths/math";
 import { UniversalCamera } from "@babylonjs/core/Cameras/universalCamera";
 import { Logger } from "@babylonjs/core/Misc/logger";
 import { WebXRInputSource } from "@babylonjs/core/XR/webXRInputSource";
@@ -35,6 +35,7 @@ import { Button3D } from "@babylonjs/gui/3D/controls/button3D"
 import { StackPanel3D } from "@babylonjs/gui/3D/controls/stackPanel3D"
 import { WebXRControllerComponent } from "@babylonjs/core/XR/motionController/webXRControllerComponent";
 import { Rectangle } from "@babylonjs/gui/2D/controls/rectangle"
+import { Animation } from "@babylonjs/core/Animations/animation";
 
 // Side effects
 import "@babylonjs/core/Helpers/sceneHelpers";
@@ -203,6 +204,8 @@ class Game
     private degreeLabel: TextBlock | null;
 
     private target: Mesh | null;
+    private targetAzimuth: number;
+    private targetPolar: number;
 
     constructor()
     {
@@ -248,6 +251,8 @@ class Game
         this.degreeMesh = null;
 
         this.target = null;
+        this.targetAzimuth = Math.PI / 4;
+        this.targetPolar = Math.PI / 4;
     }
 
     start() : void 
@@ -364,6 +369,7 @@ class Game
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
             meshes[0].rotation = new Vector3(-Math.PI / 2, 0, 0)
             target.parent = meshes[0];
+            target.position = new Vector3(20, 20, 20);
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name);
                 this.fiveProbeMeshes.push(mesh)
@@ -427,6 +433,7 @@ class Game
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name, mesh.parent?.id);
                 this.fiveProbeMeshes.push(mesh)
+                mesh.visibility = 0;
 
                 
             })
@@ -601,6 +608,7 @@ class Game
                 this.mode = Mode.kinematics;
                 // this.sliderPanel?.clearControls();
                 this.columnPanel!.removeControl(this.sliderPanel!);
+                this.performInverseKinematics();
             }
         }); 
 
@@ -1044,6 +1052,196 @@ class Game
         this.processControllerInput();
         // this.updateMenuPosition();
     }
+
+    // this.rotationObjects.push(new RotationElement("needle", "Needle", -51, 51, Axis.Z))
+    //     this.rotationObjects.push(new RotationElement("supportArm", "Support Arm", 90, 235, Axis.X))
+    //     this.translationObjects.push(new TranslationElement("gimbal", "Gimbal", -100, 100, Axis.X))
+    //     this.translationObjects.push(new TranslationElement("standLowerLeft", "Lower Stand", -100, 100, Axis.Y))
+    //     this.translationObjects.push(new TranslationElement("standLowerRight", "Lower Stand", -100, 100, Axis.Y))
+    //     this.translationObjects.push(new TranslationElement("standUpperLeft", "Upper Stand", -60, 60, Axis.Z))
+    //     this.translationObjects.push(new TranslationElement("standUpperRight", "Upper Stand", -60, 60, Axis.Z))
+    //     this.translationObjects.push(new TranslationElement("trajectory", "Trajectory", -50, 80, Axis.Y))
+
+    private performInverseKinematics()
+    {
+        var targetPosition = this.target!.position;
+
+        var needle: RotationElement;
+        var supportArm: RotationElement;
+        var standLowerRight: TranslationElement;
+        var standUpperRight : TranslationElement;
+        var gimbal: TranslationElement;
+
+        var needleEnd: Quaternion
+        var supportArmEnd: Quaternion
+        var standLowerRightEnd: number
+        var standUpperRightEnd: number
+        var gimbalEnd: number;
+        var trajectory: TranslationElement
+        
+        for (let component of this.rotationObjects) {
+            var currentRotation = component.transformNode!.rotationQuaternion!.toEulerAngles();
+            // polar, x
+            if (component.name == "supportArm")
+            {
+                var rotationQuaternion = Quaternion.FromEulerAngles(this.targetPolar + Math.PI / 2, Math.PI, 0);
+                // component.transformNode!.rotationQuaternion = rotationQuaternion;
+                supportArm = component;
+                supportArmEnd = rotationQuaternion
+                // component.transformNode!.rotation.x = this.targetPolar + 90;
+            }
+            // azimuthal, z
+            else if (component.name == "needle")
+            {
+                var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, currentRotation.y, this.targetAzimuth);
+                // component.transformNode!.rotationQuaternion = rotationQuaternion;
+                needle = component;
+                needleEnd = rotationQuaternion;
+            }
+        }
+
+        // Transform X
+        for (let component of this.translationObjects) {
+            if (component.name === "standLowerRight")
+            {
+                // component.transformNode!.position.y = targetPosition.y
+                standLowerRightEnd = targetPosition.y;
+                standLowerRight = component;
+                
+            }
+            else if (component.name == "standUpperRight")
+            {
+                // component.transformNode!.position.z = targetPosition.z;
+                standUpperRight = component;
+                standUpperRightEnd = targetPosition.z;
+            }
+            else if (component.name == "gimbal")
+            {
+                // component.transformNode!.position.x = targetPosition.x;
+                gimbal = component;
+                gimbalEnd = targetPosition.x;
+            }
+        }
+
+        this.makeTranslationAnimation(standLowerRight!, standLowerRightEnd!);
+        this.makeTranslationAnimation(standUpperRight!, standUpperRightEnd!);
+        this.makeTranslationAnimation(gimbal!, gimbalEnd!);
+
+        this.makeRotationAnimation(needle!, needleEnd!);
+        this.makeRotationAnimation(supportArm!, supportArmEnd!);
+
+        this.scene.beginAnimation(standLowerRight!.transformNode!, 0, 60, false);
+        this.scene.beginAnimation(standUpperRight!.transformNode!, 0, 60, false);
+        this.scene.beginAnimation(gimbal!.transformNode!, 0, 60, false);
+
+        this.scene.beginAnimation(needle!.transformNode!, 0, 60, false);
+        this.scene.beginAnimation(supportArm!.transformNode!, 0, 60, false);
+
+        
+    }
+
+    private makeRotationAnimation(component: RotationElement, targetRotation: Quaternion)
+    {
+        var animation = new Animation("rotationAnimation", "rotationQuaternion", 30, Animation.ANIMATIONTYPE_QUATERNION, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys = [];
+        xKeys.push({
+            frame: 0,
+            value: component.transformNode!.rotationQuaternion
+        })
+        xKeys.push({
+            frame: 60,
+            value: targetRotation
+        })
+        animation.setKeys(xKeys)
+        component.transformNode!.animations = [];
+        component.transformNode!.animations.push(animation);
+    }
+
+    private makeTranslationAnimation(component: TranslationElement, targetPosition: number)
+    {
+        switch (component.axis)
+        {
+            case Axis.X: {
+                var xAnimation = new Animation("xAnimation", "position.x", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CYCLE);
+                var xKeys = [];
+                xKeys.push({
+                    frame: 0,
+                    value: component.transformNode!.position.x
+                })
+                xKeys.push({
+                    frame: 60,
+                    value: targetPosition
+                })
+                xAnimation.setKeys(xKeys)
+                component.transformNode!.animations = [];
+                component.transformNode!.animations.push(xAnimation);
+                break;
+            }
+            case Axis.Y: {
+                var yAnimation = new Animation("yAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CYCLE);
+                var yKeys = [];
+                yKeys.push({
+                    frame: 0,
+                    value: component.transformNode!.position.y
+                })
+                yKeys.push({
+                    frame: 60,
+                    value: targetPosition
+                })
+                yAnimation.setKeys(yKeys)
+                component.transformNode!.animations = [];
+                component.transformNode!.animations.push(yAnimation);
+                break;
+            }
+            case Axis.Z: {
+                var zAnimation = new Animation("zAnimation", "position.z", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CYCLE);
+                var zKeys = [];
+                zKeys.push({
+                    frame: 0,
+                    value: component.transformNode!.position.z
+                })
+                zKeys.push({
+                    frame: 60,
+                    value: targetPosition
+                })
+                zAnimation.setKeys(zKeys)
+                component.transformNode!.animations = [];
+                component.transformNode!.animations.push(zAnimation);
+                break;
+            }
+        }
+    }
+
+    // var currentRotation = this.selectedComponent.transformNode!.rotationQuaternion!.toEulerAngles();
+    // console.log("Rotating:", value, currentRotation);
+    // switch (this.selectedComponent.axis)
+    // {
+    //     case Axis.X: {
+    //         if (this.selectedComponent.name == "supportArm")
+    //         {
+    //             var rotationQuaternion = Quaternion.FromEulerAngles(value * (Math.PI / 180), Math.PI, 0);
+    //             this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion;
+
+    //         }
+    //         else 
+    //         {
+    //             var rotationQuaternion = Quaternion.FromEulerAngles(value  * (Math.PI / 180), currentRotation.y, currentRotation.z);
+    //             this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
+    //             // this.selectedComponent.transformNode!.rotation.x = value * (Math.PI / 180);
+    //         }
+    //         break;
+    //     }
+    //     case Axis.Y: {
+    //         var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, value  * (Math.PI / 180), currentRotation.z);
+    //         this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
+    //         break;
+    //     }
+    //     case Axis.Z: {
+    //         var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, currentRotation.y, value * (Math.PI / 180));
+    //         this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
+    //         break;
+    //     }
+    // }
 
     private updateMenuPosition()
     {
