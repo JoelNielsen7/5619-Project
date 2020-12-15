@@ -24,7 +24,7 @@ import { Control } from "@babylonjs/gui/2D/controls/control"
 import { Slider } from "@babylonjs/gui/2D/controls/sliders/slider"
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader"
 import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
-import { Axis } from "@babylonjs/core/Maths/math.axis"
+import { Axis, Space } from "@babylonjs/core/Maths/math.axis"
 import { Ray } from "@babylonjs/core/Culling/ray";
 import { GUI3DManager } from "@babylonjs/gui/3D/gui3DManager"
 import { CylinderPanel } from "@babylonjs/gui/3D/controls/cylinderPanel"
@@ -44,6 +44,7 @@ enum Mode
 {
     playground,
     kinematics,
+    settings
 }
 
 class RotationElement
@@ -52,12 +53,14 @@ class RotationElement
     public name: string;
     public degreeLow: number;
     public degreeHigh: number
-    public axis: Axis;
+    public axis: Vector3;
+    public displayName: string
     
 
-    constructor(name: string, degreeLow: number, degreeHigh: number, axis: Axis)
+    constructor(name: string, displayName: string, degreeLow: number, degreeHigh: number, axis: Vector3)
     {
         this.name = name;
+        this.displayName = displayName;
         this.degreeLow = degreeLow;
         this.degreeHigh = degreeHigh;
         this.transformNode = null;
@@ -72,12 +75,15 @@ class RotationElement
         {
             case Axis.X: {
                 value =  angles.x * (180 / Math.PI)
+                break;
             }
             case Axis.Y: {
                 value = angles.y * (180 / Math.PI)
+                break;
             }
             case Axis.Z: {
                 value = angles.z * (180 / Math.PI)
+                break;
             }
         }
 
@@ -104,15 +110,52 @@ class TranslationElement
     public name: string;
     public low: number;
     public high: number
-    public axis: Axis;
+    public axis: Vector3;
+    public displayName: string
 
-    constructor(name: string, low: number, high: number, axis: Axis)
+    constructor(name: string, displayName: string, low: number, high: number, axis: Vector3)
     {
         this.name = name;
         this.low = low;
         this.high = high;
         this.transformNode = null;
         this.axis = axis
+        this.displayName = displayName;
+    }
+
+    public checkBounds(proposedTranslation: number)
+    {
+        var value = 0;
+        switch (this.axis)
+        {
+            case Axis.X: {
+                value =  this.transformNode!.position.x;
+                break;
+            }
+            case Axis.Y: {
+                value = this.transformNode!.position.y;
+                break;
+            }
+            case Axis.Z: {
+                value = this.transformNode!.position.z;
+                break;
+            }
+        }
+
+        // console.log("Trans values:", value, this.low, this.high, proposedTranslation);
+
+        if (value + proposedTranslation > this.high && proposedTranslation > 0)
+        {
+            return 0;
+        }
+        else if (value + proposedTranslation < this.low && proposedTranslation < 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return proposedTranslation;
+        }
     }
 }
 
@@ -159,6 +202,8 @@ class Game
     private degreeMesh: Mesh | null;
     private degreeLabel: TextBlock | null;
 
+    private target: Mesh | null;
+
     constructor()
     {
         // Get the canvas element 
@@ -201,6 +246,8 @@ class Game
 
         this.degreeLabel = null;
         this.degreeMesh = null;
+
+        this.target = null;
     }
 
     start() : void 
@@ -226,13 +273,14 @@ class Game
         // support arm rotates
         // standUpper translates up and down
         // 
-        this.rotationObjects.push(new RotationElement("needle", -51, 51, Axis.Z))
-        this.rotationObjects.push(new RotationElement("supportArm", 90, 180, Axis.X))
-        this.translationObjects.push(new TranslationElement("gimbal", -100, 100, Axis.X))
-        this.translationObjects.push(new TranslationElement("standLowerLeft", -60, 60, Axis.Y))
-        this.translationObjects.push(new TranslationElement("standLowerRight", -60, 60, Axis.Y))
-        this.translationObjects.push(new TranslationElement("standUpperLeft", -10, 10, Axis.Z))
-        this.translationObjects.push(new TranslationElement("standUpperRight", -10, 10, Axis.Z))
+        this.rotationObjects.push(new RotationElement("needle", "Needle", -51, 51, Axis.Z))
+        this.rotationObjects.push(new RotationElement("supportArm", "Support Arm", 90, 235, Axis.X))
+        this.translationObjects.push(new TranslationElement("gimbal", "Gimbal", -100, 100, Axis.X))
+        this.translationObjects.push(new TranslationElement("standLowerLeft", "Lower Stand", -100, 100, Axis.Y))
+        this.translationObjects.push(new TranslationElement("standLowerRight", "Lower Stand", -100, 100, Axis.Y))
+        this.translationObjects.push(new TranslationElement("standUpperLeft", "Upper Stand", -60, 60, Axis.Z))
+        this.translationObjects.push(new TranslationElement("standUpperRight", "Upper Stand", -60, 60, Axis.Z))
+        this.translationObjects.push(new TranslationElement("trajectory", "Trajectory", -50, 80, Axis.Y))
         // This creates and positions a first-person camera (non-mesh)
         var camera = new UniversalCamera("camera1", new Vector3(0, 1.6, 0), this.scene);
         camera.fov = 90 * Math.PI / 180;
@@ -303,6 +351,9 @@ class Game
         //     })
         // });
 
+        var target = MeshBuilder.CreateSphere("sphere", {'diameter': 5}, this.scene);
+        this.target = target;
+
         SceneLoader.ImportMesh("", "assets/models/", "MachineModel.glb", this.scene, (meshes) => {
             meshes[0].name = "machineModel"
             var lowerStandTransform = new TransformNode("lowerStand");
@@ -312,6 +363,7 @@ class Game
             meshes[0].position = new Vector3(3, 0.5, 1.5);
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
             meshes[0].rotation = new Vector3(-Math.PI / 2, 0, 0)
+            target.parent = meshes[0];
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name);
                 this.fiveProbeMeshes.push(mesh)
@@ -319,6 +371,8 @@ class Game
 
                 if (mesh.name == "trajectory")
                 {
+                    var trajectoryTransform = new TransformNode("trajectory");
+                    mesh.setParent(trajectoryTransform);
                     this.trajectory = mesh;
                 }
 
@@ -492,8 +546,15 @@ class Game
         radioButton1.height = "50px";
         radioButton1.color = "lightblue";
         radioButton1.background = "black";
+        radioButton1.isChecked = true;
         
-        var radioButton2 = new RadioButton("radioButton1");
+        var radioButton2 = new RadioButton("radioButton2");
+        radioButton2.width = "50px";
+        radioButton2.height = "50px";
+        radioButton2.color = "lightblue";
+        radioButton2.background = "black";
+
+        var radioButton3 = new RadioButton("radioButton3");
         radioButton2.width = "50px";
         radioButton2.height = "50px";
         radioButton2.color = "lightblue";
@@ -514,6 +575,13 @@ class Game
         radioButton2Header.color = "white";
         radioButtonPanel.addControl(radioButton2Header);
 
+        var radioButton3Header = Control.AddHeader(radioButton3, "Settings", "500px", {isHorizontal: true, controlFirst: true});
+        radioButton2Header.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        radioButton2Header.height = "75px";
+        radioButton2Header.fontSize = "48px";
+        radioButton2Header.color = "white";
+        radioButtonPanel.addControl(radioButton3Header);
+
         // Create a transform node to hold the configurable mesh
         var configurableMeshTransform = new TransformNode("configurableMeshTransform", this.scene);
         configurableMeshTransform.position = new Vector3(0, 1, 4);
@@ -527,10 +595,19 @@ class Game
             }
         });   
 
-        radioButton2.onIsCheckedChangedObservable.add( (state) => {
+        radioButton2.onIsCheckedChangedObservable.add((state) => {
             if(state)
             {
                 this.mode = Mode.kinematics;
+                // this.sliderPanel?.clearControls();
+                this.columnPanel!.removeControl(this.sliderPanel!);
+            }
+        }); 
+
+        radioButton3.onIsCheckedChangedObservable.add((state) => {
+            if(state)
+            {
+                this.mode = Mode.settings;
                 // this.sliderPanel?.clearControls();
                 this.columnPanel!.removeControl(this.sliderPanel!);
             }
@@ -561,6 +638,7 @@ class Game
         xSlider.barOffset = "10px";
         xSlider.top = "60px";
         xSlider.name = "xSlider";
+        xSlider.isVisible = false;
         // xSlider.paddingTop
 
         
@@ -582,7 +660,7 @@ class Game
         // zSlider.width = "500px";
 
         // Create text headers for the sliders
-        var xSliderHeader = new TextBlock("sliderHeader", "xxxxxxxxxxx"); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
+        var xSliderHeader = new TextBlock("sliderHeader", "Select an object"); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
@@ -765,7 +843,7 @@ class Game
 
         var panel = new CylinderPanel();
         panel.margin = 0.2;
-
+        panel.radius = 3;
         manager.addControl(panel);
         panel.linkToTransformNode(anchor);
         panel.blockLayout = true;
@@ -777,7 +855,10 @@ class Game
         }
         for (let tra of this.translationObjects)
         {
-            this.addButton(tra);
+            if (tra.name != "standLowerLeft" && tra.name != "standUpperLeft")
+            {
+                this.addButton(tra);
+            }
         }
         panel.blockLayout = false;
 
@@ -796,6 +877,7 @@ class Game
         var standUpperRight : TranslationElement;
         var standUpperLeft: TranslationElement;
         var gimbal: TranslationElement;
+        var trajectory: TranslationElement
 
         for (let rot of this.rotationObjects)
         {
@@ -815,6 +897,10 @@ class Game
         {
             switch(tra.name)
             {
+                case "trajectory": {
+                    trajectory = tra;
+                    break;
+                }
                 case "gimbal": {
                     gimbal = tra;
                     break;
@@ -835,11 +921,11 @@ class Game
                     standUpperRight = tra;
                     break;
                 }
-                    
+                   
             }
         }
 
-        this.trajectory!.setParent(needle!.transformNode!);
+        trajectory!.transformNode!.setParent(needle!.transformNode!);
         needle!.transformNode!.setParent(gimbal!.transformNode!);
         gimbal!.transformNode!.setParent(supportArm!.transformNode!);
         supportArm!.transformNode!.setParent(standUpperLeft!.transformNode!);
@@ -855,7 +941,7 @@ class Game
 
         // var func = this.objectSelected;
 
-        button.text = component.name;
+        button.text = component.displayName;
         button.onPointerClickObservable.add((value) => {
             console.log("BUTTON:", value);
             // component.transformNode?.getChildMeshes().forEach((mesh) => {
@@ -883,7 +969,7 @@ class Game
         this.degreeMesh!.position = new Vector3(0, 300, 0);
         // this.degreeMesh!.visibility = 1;
         this.degreeMesh!.scaling = new Vector3(100, 100, 100);
-        this.degreeLabel!.text = component.name + component.transformNode!.rotation.z;
+        this.degreeLabel!.text = component.displayName + component.transformNode!.rotation.z;
         this.selectedComponent.transformNode!.getChildMeshes().forEach((mesh) => {
             mesh.enableEdgesRendering();
         })
@@ -893,6 +979,7 @@ class Game
     private configureSlider(component: RotationElement | TranslationElement)
     {
         this.sliderPanel!.clearControls();
+        this.slider!.isVisible = true;
         if ((component instanceof TranslationElement))
         {
             console.log("TRANSLATION SELECTED:", component.name)
@@ -938,7 +1025,7 @@ class Game
                 }
             }
         }
-        var xSliderHeader = new TextBlock("xSliderHeader", component.name); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
+        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
@@ -955,6 +1042,12 @@ class Game
     private update() : void
     {
         this.processControllerInput();
+        // this.updateMenuPosition();
+    }
+
+    private updateMenuPosition()
+    {
+        this.buttonPanel!.position = this.xrCamera!.position;
     }
 
     private processControllerInput()
@@ -965,8 +1058,9 @@ class Game
             this.performControllerMode();
         }
     //     this.onRightB(this.rightController?.motionController?.getComponent("b-button"));
-    //     this.onRightThumbstick(this.rightController?.motionController?.getComponent("xr-standard-thumbstick"));   
+        // this.onRightThumbstick(this.rightController?.motionController?.getComponent("xr-standard-thumbstick"));   
     }
+
 
     private controllerRotationToMeshRotation(controllerRotation: number): number
     {
@@ -990,6 +1084,34 @@ class Game
         }
     } 
 
+    private controllerToMeshPosition(controllerRotation: number): number
+    {
+        var scalingFactor = 0.05
+        var thumbstick = this.rightController!.motionController!.getComponent("xr-standard-thumbstick");
+        var value = thumbstick.axes.y
+        scalingFactor = (1+ value + 0.000005) * scalingFactor
+        controllerRotation = -controllerRotation * (180 / Math.PI);
+        console.log("CONTROLLER ROT:", controllerRotation)
+        if (Math.abs(controllerRotation) < 5)
+        {
+            return 0
+        }
+        else if (Math.abs(controllerRotation) > 90)
+        {
+            if(controllerRotation > 0)
+            {
+                return 90 * scalingFactor;
+            }
+            else
+            {
+                return -90 * scalingFactor;
+            }
+        }
+        else
+        {
+            return controllerRotation * scalingFactor;
+        }
+    }
 
     private performControllerMode()
     {
@@ -1003,20 +1125,31 @@ class Game
                 case Axis.X: {
                     var value = this.selectedComponent.checkBounds(this.controllerRotationToMeshRotation(controllerRotation.z))
                     this.selectedComponent.transformNode!.addRotation(value, 0, 0);
+                    this.slider!.value = this.selectedComponent.transformNode!.rotation.x;
+                    break; 
                 }
                 case Axis.Y: {
                     var value = this.selectedComponent.checkBounds(this.controllerRotationToMeshRotation(controllerRotation.z))
                     this.selectedComponent.transformNode!.addRotation(0, value, 0);
+                    this.slider!.value = this.selectedComponent.transformNode!.rotation.y; 
+                    break;
                 }
                 case Axis.Z: {
                     var value = this.selectedComponent.checkBounds(this.controllerRotationToMeshRotation(controllerRotation.z))
                     this.selectedComponent.transformNode!.addRotation(0, 0, value);
+                    this.slider!.value = this.selectedComponent.transformNode!.rotation.z; 
+                    break;
                 }
             }
         }
         else 
         {
-
+            var value = this.selectedComponent!.checkBounds(this.controllerToMeshPosition(controllerRotation.z));
+            if(this.selectedComponent!.name == "trajectory")
+            {
+                value = value * 0.2
+            }
+            this.selectedComponent!.transformNode!.translate(this.selectedComponent!.axis, value, Space.LOCAL)
         }
     }
 
