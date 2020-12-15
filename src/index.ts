@@ -175,6 +175,7 @@ class Game
     private configurableMesh: Mesh | null;
 
     private fiveProbeMeshes: AbstractMesh[];
+    private headMeshes: AbstractMesh[];
 
     private mode: Mode;
 
@@ -193,6 +194,11 @@ class Game
     private selectedComponent: RotationElement | TranslationElement | null;
 
     private buttonPanel: CylinderPanel | null;
+
+
+    private headButtonPanel: StackPanel | null;
+
+
 
     private trajectory: AbstractMesh | null;
 
@@ -225,6 +231,7 @@ class Game
         this.configurableMesh = null;
 
         this.fiveProbeMeshes = [];
+        this.headMeshes = [];
 
         this.mode = Mode.playground
 
@@ -240,6 +247,8 @@ class Game
         this.selectedComponent = null;
 
         this.buttonPanel = null;
+
+        this.headButtonPanel = null;
         
         this.trajectory = null;
 
@@ -431,12 +440,12 @@ class Game
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
             meshes[0].rotation = new Vector3(0, 0, Math.PI)
             meshes.forEach((mesh) => {
-                console.log("loaded ", mesh.name, mesh.parent?.id);
-                this.fiveProbeMeshes.push(mesh)
+                console.log("loaded ", mesh.name, mesh.parent ?.id);
+                this.headMeshes.push(mesh);
                 mesh.visibility = 0;
 
-                
-            })
+
+            });
             
         });
 
@@ -872,6 +881,90 @@ class Game
 
         this.slider = xSlider;
         this.columnPanel = columnPanel;
+
+        // Brain visibility configuration
+        var sliderConfigTransform = new TransformNode("settingsTransform");
+
+        var sliderConfigPlane = MeshBuilder.CreatePlane("configPlane", { width: 1.5, height: 3 }, this.scene);
+        sliderConfigPlane.position = new Vector3(7, 2, 1);
+        sliderConfigPlane.parent = sliderConfigTransform;
+
+        var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 770);
+        sliderConfigTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
+
+        this.headButtonPanel = new StackPanel();
+        this.headButtonPanel.name = "visibility sliders"
+        this.headButtonPanel.widthInPixels = 675;
+        this.headButtonPanel.heightInPixels = 720;
+        this.headButtonPanel.isVertical = true;
+        this.headButtonPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        this.headButtonPanel.paddingLeftInPixels = 25;
+        this.headButtonPanel.paddingTopInPixels = 0;
+        sliderConfigTexture.addControl(this.headButtonPanel);
+
+        var sliderArray = [];
+
+        var acpcSlider = new Slider("acpc");
+        var caudateSlider = new Slider("caudate");
+        var gpeSlider = new Slider("gpe");
+        var gpiSlider = new Slider("gpi");
+        var putamenSlider = new Slider("putamen");
+        var rnSlider = new Slider("rn");
+        var snSlider = new Slider("sn");
+        var stnSlider = new Slider("stn");
+        var thalmusSlider = new Slider("thalmus");
+        var vasculatureSlider = new Slider("vasculature");
+        var brainSlider = new Slider("brain");
+        var skullSlider = new Slider("skull");
+
+        sliderArray.push(acpcSlider);
+        sliderArray.push(caudateSlider);
+        sliderArray.push(gpeSlider);
+        sliderArray.push(gpiSlider);
+        sliderArray.push(putamenSlider);
+        sliderArray.push(rnSlider);
+        sliderArray.push(snSlider);
+        sliderArray.push(stnSlider);
+        sliderArray.push(thalmusSlider);
+        sliderArray.push(vasculatureSlider);
+        sliderArray.push(brainSlider);
+        sliderArray.push(skullSlider);
+
+        sliderArray.forEach((slider) => {
+            var panel = new StackPanel();
+            panel.name = slider.name + " panel";
+            panel.widthInPixels = 600;
+            panel.heightInPixels = 60;
+            panel.isVertical = false;
+            this.headButtonPanel!.addControl(panel);
+
+            slider.widthInPixels = 300;
+            slider.heightInPixels = 50;
+            xSlider.color = "lightblue";
+            slider.top = "0px";
+            slider.barOffset = "10px";
+            slider.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+            slider.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+            slider.isThumbClamped = true;
+            slider.maximum = 1;
+
+            var textBlock = new TextBlock(slider.name, slider.name);
+            textBlock.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+            textBlock.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+            textBlock.color = "white";
+            textBlock.fontSize = "48px";
+            textBlock.heightInPixels = 50;
+            textBlock.widthInPixels = 300;
+            panel.addControl(textBlock);
+            panel.addControl(slider);
+
+            // Visibility slider event handlers
+            slider.onValueChangedObservable.add((value) => {
+                // configurableMeshTransform.rotation.x = value * Math.PI / 180;
+                console.log("Slider changed to:", value)
+            });
+        });
+
         this.scene.debugLayer.show(); 
     }
 
@@ -882,7 +975,7 @@ class Game
         var supportArm: RotationElement;
         var standLowerLeft: TranslationElement;
         var standLowerRight: TranslationElement;
-        var standUpperRight : TranslationElement;
+        var standUpperRight: TranslationElement;
         var standUpperLeft: TranslationElement;
         var gimbal: TranslationElement;
         var trajectory: TranslationElement
