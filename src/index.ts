@@ -1,5 +1,5 @@
-/* CSCI 5619 Lecture 20, Fall 2020
- * Author: Evan Suma Rosenberg
+/* CSCI 5619 Final Project
+ * Authors: Joel Nielsen and Michael Ung
  * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
  */ 
 
@@ -13,6 +13,7 @@ import { WebXRCamera } from "@babylonjs/core/XR/webXRCamera";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial"
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture"
 import { VirtualKeyboard } from "@babylonjs/gui/2D/controls/virtualKeyboard" 
@@ -36,10 +37,13 @@ import { StackPanel3D } from "@babylonjs/gui/3D/controls/stackPanel3D"
 import { WebXRControllerComponent } from "@babylonjs/core/XR/motionController/webXRControllerComponent";
 import { Rectangle } from "@babylonjs/gui/2D/controls/rectangle"
 import { Animation } from "@babylonjs/core/Animations/animation";
+// import { Line } from "@babylonjs/gui/2D/controls/line"
+// import { Line } from "@babylonjs/core/"
 
 // Side effects
 import "@babylonjs/core/Helpers/sceneHelpers";
 import "@babylonjs/inspector";
+import { LineContainerComponent } from "@babylonjs/inspector/components/actionTabs/lineContainerComponent";
 
 enum Mode 
 {
@@ -183,6 +187,7 @@ class Game
     private columnPanel: StackPanel | null;
 
     private slider: Slider | null;
+    private sliderHeader: TextBlock | null;
 
     private selectableObjects: AbstractMesh[];
 
@@ -206,6 +211,18 @@ class Game
     private target: Mesh | null;
     private targetAzimuth: number;
     private targetPolar: number;
+
+    private kinematicSliderHeaders: TextBlock[];
+    private kinematicsSliders: Slider[];
+    private kinematicsButton: Button | null;
+
+    private targetLine: Mesh | null;
+    
+    private polarTransform: TransformNode | null;
+    private azimuthalTransform: TransformNode | null;
+
+    private buttonPanel1: StackPanel | null;
+    private buttonPanel2: StackPanel | null;
 
     constructor()
     {
@@ -231,6 +248,7 @@ class Game
         this.sliderPanel = null;
         this.columnPanel = null;
         this.slider = null;
+        this.sliderHeader = null;
 
         this.selectableObjects = [];
 
@@ -251,8 +269,19 @@ class Game
         this.degreeMesh = null;
 
         this.target = null;
-        this.targetAzimuth = Math.PI / 4;
-        this.targetPolar = Math.PI / 4;
+        this.targetAzimuth = 0;
+        this.targetPolar = 0;
+
+        this.kinematicsSliders = [];
+        this.kinematicSliderHeaders = [];
+        this.kinematicsButton = null;
+        this.targetLine = null;
+
+        this.polarTransform = null;
+        this.azimuthalTransform = null;
+
+        this.buttonPanel1 = null;
+        this.buttonPanel2 = null;
     }
 
     start() : void 
@@ -279,13 +308,13 @@ class Game
         // standUpper translates up and down
         // 
         this.rotationObjects.push(new RotationElement("needle", "Needle", -51, 51, Axis.Z))
-        this.rotationObjects.push(new RotationElement("supportArm", "Support Arm", 90, 235, Axis.X))
+        this.rotationObjects.push(new RotationElement("supportArm", "Support Arm", 90, 196, Axis.X))
         this.translationObjects.push(new TranslationElement("gimbal", "Gimbal", -100, 100, Axis.X))
         this.translationObjects.push(new TranslationElement("standLowerLeft", "Lower Stand", -100, 100, Axis.Y))
         this.translationObjects.push(new TranslationElement("standLowerRight", "Lower Stand", -100, 100, Axis.Y))
         this.translationObjects.push(new TranslationElement("standUpperLeft", "Upper Stand", -60, 60, Axis.Z))
         this.translationObjects.push(new TranslationElement("standUpperRight", "Upper Stand", -60, 60, Axis.Z))
-        this.translationObjects.push(new TranslationElement("trajectory", "Trajectory", -50, 80, Axis.Y))
+        this.translationObjects.push(new TranslationElement("trajectory", "Trajectory", -80, 50, Axis.Y))
         // This creates and positions a first-person camera (non-mesh)
         var camera = new UniversalCamera("camera1", new Vector3(0, 1.6, 0), this.scene);
         camera.fov = 90 * Math.PI / 180;
@@ -305,8 +334,6 @@ class Game
             createGround: true,
             groundSize: 100,
             createSkybox: false
-            // skyboxSize: 50,
-            // skyboxColor: new Color3(0, 0, 0)
         });
 
         // Make sure the ground and skybox are not pickable!
@@ -356,8 +383,40 @@ class Game
         //     })
         // });
 
-        var target = MeshBuilder.CreateSphere("sphere", {'diameter': 5}, this.scene);
+        // lines creation
+        
+        
+
+        var target = MeshBuilder.CreateSphere("sphere", {'diameter': 10}, this.scene);
         this.target = target;
+        var targetMat = new StandardMaterial("targetMat", this.scene);
+        targetMat.diffuseColor = new Color3(255, 255, 255);
+        targetMat.alpha = 0.5;
+        target.material = targetMat;
+
+        var targetLineMat = new StandardMaterial("targetLineMat", this.scene);
+        targetLineMat.diffuseColor = new Color3(255, 255, 255);
+        var lineLength = 200;
+        var targetLine = MeshBuilder.CreateCylinder("cone", {'height': lineLength, 'diameter': 1}, this.scene)
+        targetLine.material = targetLineMat;
+        targetLine.visibility = 1;
+        var polarTransform = new TransformNode("polar")
+        var azimuthalTransform = new TransformNode("azimuth")
+
+        var lineTransformNodeDynamic = new TransformNode("angleDynamic");
+
+        var lineTransformNodeStatic = new TransformNode("angleStatic");
+        lineTransformNodeStatic.rotation.x = Math.PI / 2;
+        lineTransformNodeStatic.position.z = lineLength / 2;
+        
+        lineTransformNodeStatic.parent = this.target;
+        lineTransformNodeDynamic.parent = lineTransformNodeStatic;
+        targetLine.parent = lineTransformNodeDynamic;
+
+        // this.targetLineDynamicTransform = lineTransformNodeDynamic;
+        targetLine.visibility = 0;
+        this.targetLine = targetLine;
+
 
         SceneLoader.ImportMesh("", "assets/models/", "MachineModel.glb", this.scene, (meshes) => {
             meshes[0].name = "machineModel"
@@ -365,11 +424,15 @@ class Game
             var upperStandTransform = new TransformNode("upperStand");
             lowerStandTransform.setParent(meshes[0])
             upperStandTransform.setParent(meshes[0])
-            meshes[0].position = new Vector3(3, 0.5, 1.5);
+            meshes[0].position = new Vector3(0, 0.8, 4.2);
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
             meshes[0].rotation = new Vector3(-Math.PI / 2, 0, 0)
-            target.parent = meshes[0];
-            target.position = new Vector3(20, 20, 20);
+            polarTransform.parent = meshes[0];
+            azimuthalTransform.parent = polarTransform;
+            target.parent = azimuthalTransform;
+            target.visibility = 0;
+            this.polarTransform = polarTransform;
+            this.azimuthalTransform = azimuthalTransform;
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name);
                 this.fiveProbeMeshes.push(mesh)
@@ -441,95 +504,21 @@ class Game
         });
 
 
-
-
-        // // Create a parent transform
-        // var textTransform = new TransformNode("textTransform");
-        // textTransform.rotation.y = 270 * Math.PI / 180;
-
-        // // Create a plane for a text block
-        // var staticTextPlane = MeshBuilder.CreatePlane("textPlane", {width: 10, height: 5}, this.scene);
-        // staticTextPlane.position = new Vector3(0, 7, 8);
-        // staticTextPlane.isPickable = false;
-        // staticTextPlane.parent = textTransform;
-
-        // // Create a dynamic texture for the text block
-        // var staticTextTexture = AdvancedDynamicTexture.CreateForMesh(staticTextPlane, 1000, 500);
-        // staticTextTexture.background = "#414163";
-
-        // // Create a static text block
-        // var staticText = new TextBlock();
-        // staticText.text = "";
-        // staticText.color = "white";
-        // staticText.fontSize = 32;
-        // staticText.textHorizontalAlignment = TextBlock.HORIZONTAL_ALIGNMENT_LEFT;
-        // staticText.textVerticalAlignment = TextBlock.VERTICAL_ALIGNMENT_TOP;
-        // staticTextTexture.addControl(staticText);
-
-        // // Create a plane for a virtual keyboard
-        // var keyboardPlane = MeshBuilder.CreatePlane("keyboardPlane", {}, this.scene);
-        // keyboardPlane.position = new Vector3(0, 1.6, 1);
-        // keyboardPlane.parent = textTransform;
-
-        // // Create a dynamic texture for the virtual keyboard
-        // var keyboardTexture = AdvancedDynamicTexture.CreateForMesh(keyboardPlane, 1024, 1024);
-
-        // // Create a keyboard input text field
-        // var keyboardInput = new InputText(); 
-        // keyboardInput.top = -260;
-        // keyboardInput.width = 1;
-        // keyboardInput.height = "80px";
-        // keyboardInput.fontSize = 36;
-        // keyboardInput.color = "white";
-        // keyboardInput.background = "#070707";    
-		// keyboardTexture.addControl(keyboardInput);
-
-        // // Create a virtual keyboard
-        // var virtualKeyboard = VirtualKeyboard.CreateDefaultLayout("virtualKeyboard");
-        // virtualKeyboard.scaleX = 2.0;
-        // virtualKeyboard.scaleY = 2.0;
-        // keyboardTexture.addControl(virtualKeyboard);
-
-        // // This connects automatically hides the keyboard
-        // //virtualKeyboard.connect(keyboardInput);
-
-        // // This keeps the keyboard visible
-        // virtualKeyboard.onKeyPressObservable.add((key) => {
-        //     switch(key)
-        //     {
-        //         // Backspace
-        //         case '\u2190':
-        //             keyboardInput.processKey(8);
-        //             break;
-
-        //         // Shift
-        //         case '\u21E7':
-        //             virtualKeyboard.shiftState = virtualKeyboard.shiftState == 0 ? 1 : 0;
-        //             virtualKeyboard.applyShiftState(virtualKeyboard.shiftState);
-        //             break;
-
-        //         // Enter
-        //         case '\u21B5':
-        //             keyboardInput.processKey(13);
-        //             staticText.text += "\n> " + keyboardInput.text;
-        //             break;  
-                
-        //         default:
-        //             keyboardInput.processKey(-1, virtualKeyboard.shiftState == 0 ? key : key.toUpperCase());
-        //     }
-        // });
-
         // Create a parent transform for the object configuration panel
         var configTransform = new TransformNode("textTransform");
+        configTransform.position = new Vector3(0, .4, .75)
+        configTransform.rotation = new Vector3(47, 0, 0).scale(Math.PI / 180)
 
         // Create a plane for the object configuration panel
-        var configPlane = MeshBuilder.CreatePlane("configPlane", {width: 1.5, height: .5}, this.scene);
-        configPlane.position = new Vector3(0, 1, 1);
+        var configPlane = MeshBuilder.CreatePlane("configPlane", {width: 1.5, height: 1}, this.scene);
+        
         configPlane.parent = configTransform;
 
+
         // Create a dynamic texture the object configuration panel
-        var configTexture = AdvancedDynamicTexture.CreateForMesh(configPlane, 1500, 500);
+        var configTexture = AdvancedDynamicTexture.CreateForMesh(configPlane, 1500, 1000);
         configTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
+
 
         // Create a stack panel for the columns
         var columnPanel = new StackPanel();
@@ -542,7 +531,9 @@ class Game
 
         // Create a stack panel for the radio buttons
         var radioButtonPanel = new StackPanel();
+        // radioButtonPanel.background = (new Color4(.5, .5, .75, .25)).toHexString();
         radioButtonPanel.widthInPixels = 500;
+        // radioButtonPanel.height = 1;
         radioButtonPanel.isVertical = true;
         radioButtonPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
         columnPanel.addControl(radioButtonPanel);
@@ -598,7 +589,21 @@ class Game
             if(state)
             {
                 this.mode = Mode.playground;
-                this.columnPanel!.addControl(this.sliderPanel)
+                this.sliderPanel!.clearControls();
+                // this.configureSlider();
+                this.sliderPanel!.addControl(this.sliderHeader!)
+                this.sliderPanel!.addControl(this.slider!)
+                this.slider!.isVisible = false;
+                this.targetLine!.visibility = 0;
+                this.target!.visibility = 0;
+                this.sliderPanel!.addControl(this.buttonPanel1)
+                this.sliderPanel!.addControl(this.buttonPanel2)
+                
+
+                this.target!.visibility = 0;
+                this.targetLine!.visibility = 0;
+                
+                // this.columnPanel!.addControl(this.sliderPanel)
             }
         });   
 
@@ -606,9 +611,16 @@ class Game
             if(state)
             {
                 this.mode = Mode.kinematics;
-                // this.sliderPanel?.clearControls();
-                this.columnPanel!.removeControl(this.sliderPanel!);
-                this.performInverseKinematics();
+                this.target!.visibility = 1;
+                this.targetLine!.visibility = 1;
+                this.configureKinematicsSliders();
+                if (this.selectedComponent)
+                {
+                    this.selectedComponent.transformNode!.getChildMeshes().forEach((mesh) => {
+                        mesh.disableEdgesRendering();
+                    })
+                    this.selectedComponent = null;
+                }
             }
         }); 
 
@@ -616,15 +628,16 @@ class Game
             if(state)
             {
                 this.mode = Mode.settings;
-                // this.sliderPanel?.clearControls();
                 this.columnPanel!.removeControl(this.sliderPanel!);
             }
         }); 
 
         // Create a stack panel for the radio buttons
         var sliderPanel = new StackPanel();
-        sliderPanel.widthInPixels = 800;
-        sliderPanel.heightInPixels = 120;
+        // sliderPanel.background = (new Color4(.5, .5, .75, .25)).toHexString();
+        sliderPanel.paddingTop = 0;
+        sliderPanel.widthInPixels = 850;
+        sliderPanel.heightInPixels = 1000;
         sliderPanel.isVertical = true;
         sliderPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
         sliderPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
@@ -639,7 +652,7 @@ class Game
         xSlider.maximum = 360;
         xSlider.value = 0;
         xSlider.color = "lightblue";
-        xSlider.height = "60px";
+        xSlider.height = "40px";
         xSlider.width = "500px";
         xSlider.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSlider.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
@@ -649,23 +662,77 @@ class Game
         xSlider.isVisible = false;
         // xSlider.paddingTop
 
+        // x: -100, 100
+        // y: -50, 150
+        // z: -100, 100
+        // polar: 0, 120
+        // azimuthal: -51, 51
+        //
+        var kinematicRanges = [new Vector2(-100, 100), new Vector2(-50, 150), new Vector2(-100, 100), new Vector2(0, 120), new Vector2(-51, 51)]
+        var kinematicLabels = ["X", "Y", "Z", "Polar", "Azimuth"]
+
+        for(var i = 0; i < 5; i++)
+        {
+            var kSlider = new Slider();
+            var ranges = kinematicRanges[i]
+            kSlider.minimum = ranges.x;
+            kSlider.maximum = ranges.y;
+            kSlider.value = 0;
+            kSlider.color = "lightblue";
+            kSlider.height = "60px";
+            kSlider.width = "500px";
+            // kSlider.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+            // kSlider.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+            // kSlider.barOffset = "10px";
+            kSlider.name = "kSlider" + i;
+            kSlider.isVisible = true;
+
+            this.kinematicsSliders.push(kSlider);
+
+            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i]); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
+            // kSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+            kSliderHeader.height = "60px";
+            kSliderHeader.fontSize = "48px";
+            kSliderHeader.color = "white"; 
+            // kSliderHeader.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+            // kSliderHeader.left = "0px";
+            // kSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+            // kSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+
+            this.kinematicSliderHeaders.push(kSliderHeader);
+        }
+
+        this.kinematicsSliders[0].onValueChangedObservable.add((value) => {
+            this.polarTransform!.position.x = value;
+        })
+        this.kinematicsSliders[1].onValueChangedObservable.add((value) => {
+            this.polarTransform!.position.y = value;
+        })
+        this.kinematicsSliders[2].onValueChangedObservable.add((value) => {
+            this.polarTransform!.position.z = value;
+        })
+        this.kinematicsSliders[3].onValueChangedObservable.add((value) => {
+            this.polarTransform!.rotation.x = -value * (Math.PI / 180)
+            this.targetPolar = value * (Math.PI / 180);
+        })
+        this.kinematicsSliders[4].onValueChangedObservable.add((value) => {
+            this.targetAzimuth = -value * (Math.PI / 180);
+            this.azimuthalTransform!.rotation.y = value * Math.PI / 180;
+        })
+
+        var kButton = Button.CreateSimpleButton("kinematicsButton", "Go");
+        kButton.paddingTop = "50px";
+        kButton.width = "300px"
+        kButton.height = "130px";
+        kButton.background = "green";
+        kButton.color  = "white";
+        kButton.textBlock!.fontSize = "48px";
+        kButton.onPointerUpObservable.add((value) => {
+            this.performInverseKinematics();
+        })
+
+        this.kinematicsButton = kButton;
         
-
-        // var ySlider = new Slider();
-        // ySlider.minimum = 0;
-        // ySlider.maximum = 360;
-        // ySlider.value = 0;
-        // ySlider.color = "lightblue";
-        // ySlider.height = "50px";
-        // ySlider.width = "500px";
-
-        // var zSlider = new Slider();
-        // zSlider.minimum = 0;
-        // zSlider.maximum = 360;
-        // zSlider.value = 0;
-        // zSlider.color = "lightblue";
-        // zSlider.height = "50px";
-        // zSlider.width = "500px";
 
         // Create text headers for the sliders
         var xSliderHeader = new TextBlock("sliderHeader", "Select an object"); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
@@ -678,26 +745,15 @@ class Game
         xSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
 
+        this.sliderHeader = xSliderHeader;
+
         sliderPanel.addControl(xSliderHeader);
         sliderPanel.addControl(xSlider);
 
 
-        // var ySliderHeader = Control.AddHeader(ySlider, "y", "50px", {isHorizontal: true, controlFirst: false});
-        // ySliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        // ySliderHeader.height = "75px";
-        // ySliderHeader.fontSize = "48px";
-        // ySliderHeader.color = "white";
-        // sliderPanel.addControl(ySliderHeader);
-
-        // var zSliderHeader = Control.AddHeader(zSlider, "z", "50px", {isHorizontal: true, controlFirst: false});
-        // zSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-        // zSliderHeader.height = "75px";
-        // zSliderHeader.fontSize = "48px";
-        // zSliderHeader.color = "white";
-        // sliderPanel.addControl(zSliderHeader);
-
         // Event handlers for the sliders
         xSlider.onValueChangedObservable.add((value) => {
+            if (this.selectedComponent){
             // configurableMeshTransform.rotation.x = value * Math.PI / 180;
             console.log("Slider changed to:", value)
             if (this.selectedComponent)
@@ -724,22 +780,24 @@ class Game
                 }
                 else 
                 {
-                    var currentRotation = this.selectedComponent.transformNode!.rotationQuaternion!.toEulerAngles();
-                    console.log("Rotating:", value, currentRotation);
+                    var currentRotation = new Vector3(0, 0, 0);
+                    if(this.selectedComponent.name != "supportArm")
+                    {
+                        currentRotation = this.selectedComponent.transformNode!.rotationQuaternion!.toEulerAngles();
+                    }
                     switch (this.selectedComponent.axis)
                     {
                         case Axis.X: {
                             if (this.selectedComponent.name == "supportArm")
                             {
-                                var rotationQuaternion = Quaternion.FromEulerAngles(value * (Math.PI / 180), Math.PI, 0);
-                                this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion;
-
+                                console.log("current rotation and value:", this.selectedComponent.transformNode!.rotation.x, value)
+                                this.selectedComponent.transformNode!.rotation.x = value * (Math.PI / 180);
+                                console.log("after:", this.selectedComponent.transformNode!.rotation.x, value)
                             }
                             else 
                             {
                                 var rotationQuaternion = Quaternion.FromEulerAngles(value  * (Math.PI / 180), currentRotation.y, currentRotation.z);
                                 this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
-                                // this.selectedComponent.transformNode!.rotation.x = value * (Math.PI / 180);
                             }
                             break;
                         }
@@ -756,6 +814,7 @@ class Game
                     }
                 }
             }
+        } else {console.log("component not selected in slider reaction")}
         });
 
         var plane = Mesh.CreatePlane("plane", 2, this.scene);
@@ -774,7 +833,6 @@ class Game
         rect1.cornerRadius = 20;
         rect1.color = "Black";
         rect1.thickness = 1;
-        // rect1.background = "null";
         rect1.alpha = 0.5;
         advancedTexture.addControl(rect1);
 
@@ -790,69 +848,21 @@ class Game
         rect1.linkOffsetY = 0;
 
 
-        // ySlider.onValueChangedObservable.add((value) => {
-        //     configurableMeshTransform.rotation.y = value * Math.PI / 180;
-        // });
-
-        // zSlider.onValueChangedObservable.add((value) => {
-        //     configurableMeshTransform.rotation.z = value * Math.PI / 180;
-        // });
-
-        // var button = new Button("Controller Mode");
-        // // var button = Button.CreateSimpleButton("controllerMode", "Controller Mode");
-        // var buttonPanel = new StackPanel();
-        // // var button = new HolographicButton("orientation");
-        // buttonPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
-        // buttonPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_BOTTOM;
-        // buttonPanel.addControl(button);
-        // buttonPanel.widthInPixels = 400;
-        // buttonPanel.isVertical = true;
-
-        // buttonPanel.addControl(button);
-        // configTexture.addControl(buttonPanel)
         var manager = new GUI3DManager(this.scene);
-        // var anchor = new TransformNode("anchor", this.scene);
-        // anchor.scaling = new Vector3(0.1, 0.1, 0.1);
-
-        // var buttonPanel = new StackPanel3D();
-        // buttonPanel.margin = 0.02;
-        // buttonPanel.scaling = new Vector3(0.1, 0.1, 0.1);
-  
-        // manager.addControl(buttonPanel);
-        // buttonPanel.position.z = 1;
-        // buttonPanel.position.x = 0.25
-        // // var button = new HolographicButton("orientation");
-        // // buttonPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
-        // // buttonPanel.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_BOTTOM;
-        // // buttonPanel.widthInPixels = 400;
-        // // buttonPanel.isVertical = true;
-
-        // var button = new Button3D("controllerMode");
-        // button.scaling = new Vector3(0.1, 0.1, 0.1);
-        // button.linkToTransformNode(anchor);
-        
-        // button.onPointerUpObservable.add(function(){
-        //     console.log("controller button pushed")
-        // });   
-        
-        // var text1 = new TextBlock();
-        // text1.text = "Controller Mode";
-        // text1.color = "white";
-        // text1.fontSize = 24;
-        // button.content = text1;  
-
-        // buttonPanel.addControl(button);
-
-
         var anchor = new TransformNode("componentSelect");
-        anchor.position = new Vector3(0, 1.2, 1);
+        // anchor.position = new Vector3(0, 1.2, 1);
+        anchor.position = new Vector3(0, 0, -75)
+        anchor.rotation = new Vector3(23, 0, 0).scale(Math.PI / 180)
             // Create the 3D UI manager
+
         
 
         var panel = new CylinderPanel();
-        panel.margin = 0.2;
-        panel.radius = 3;
+        panel.margin = 0.1;
+        panel.radius = 6;
+        panel.rows = 2;
         manager.addControl(panel);
+        
         panel.linkToTransformNode(anchor);
         panel.blockLayout = true;
         this.buttonPanel = panel;
@@ -870,11 +880,100 @@ class Game
         }
         panel.blockLayout = false;
 
+
+
+
+        var buttonStackPanel1 = new StackPanel("buttonPanel1");
+        buttonStackPanel1.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        buttonStackPanel1.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonStackPanel1.widthInPixels = 980;
+        buttonStackPanel1.heightInPixels = 300;
+        buttonStackPanel1.paddingLeft = 100;
+        buttonStackPanel1.isVertical = false;
+        var buttonStackPanel2 = new StackPanel("buttonPanel2");
+        buttonStackPanel2.isVertical = false;
+        buttonStackPanel2.paddingLeft = 100;
+        buttonStackPanel2.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_TOP;
+        buttonStackPanel2.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonStackPanel2.widthInPixels = 980;
+        buttonStackPanel2.heightInPixels = 300;
+
+        var x = new HolographicButton()
+        for (let component of this.rotationObjects)
+        {
+            var button1 = Button.CreateSimpleButton("orientation", component.displayName);
+            button1.height = "270px"
+            button1.width = "270px"
+            button1.paddingBottom = "20px"
+            button1.paddingTop = "20px"
+            button1.paddingLeft = "15px"
+            button1.paddingRight = "15px"
+            button1.background = "green"
+            button1.color = "white"
+            button1.textBlock!.fontSize = "48px";
+            button1.onPointerClickObservable.add((value) => {
+            this.objectSelected(component);
+
+        });
+            buttonStackPanel1.addControl(button1);
+        }
+
+        this.buttonPanel1 = buttonStackPanel1;
+        this.buttonPanel2 = buttonStackPanel2;
+
+        for(let component of this.translationObjects)
+        {
+            if(component.name == "standLowerLeft" || component.name == "standUpperLeft")
+            {
+                continue;
+            }
+            if(component.name == "gimbal")
+            {
+                console.log("got gimbal")
+                this.addRegularButton(component, 0);
+            }
+            else 
+            {
+                console.log("not gimbal:")
+                this.addRegularButton(component, 1);
+            }
+        }
+        
+
+        this.sliderPanel.addControl(buttonStackPanel1)
+        this.sliderPanel.addControl(buttonStackPanel2)
+
+
         this.slider = xSlider;
         this.columnPanel = columnPanel;
         this.scene.debugLayer.show(); 
     }
 
+    private addRegularButton(component: RotationElement | TranslationElement, row: number)
+    {
+        var button1 = Button.CreateSimpleButton("orientation", component.displayName);
+        button1.height = "270px"
+        button1.width = "270px"
+        button1.paddingBottom = "20px"
+        button1.paddingTop = "20px"
+        button1.paddingLeft = "15px"
+        button1.paddingRight = "15px"
+        button1.background = "green"
+        button1.color = "white"
+        button1.textBlock!.fontSize = "48px";
+        button1.onPointerClickObservable.add((value) => {
+        this.objectSelected(component);
+
+        });
+        if (row == 0)
+        {
+            this.buttonPanel1!.addControl(button1);
+        }
+        else
+        {
+            this.buttonPanel2!.addControl(button1);
+        }
+    }
 
     private constructHierarchy()
     {
@@ -893,9 +992,11 @@ class Game
             {
                 case "needle": {
                     needle = rot;
+                    break;
                 }
                 case "supportArm": {
                     supportArm = rot;
+                    break;
                 }
                     
             }
@@ -938,8 +1039,12 @@ class Game
         gimbal!.transformNode!.setParent(supportArm!.transformNode!);
         supportArm!.transformNode!.setParent(standUpperLeft!.transformNode!);
         standUpperLeft!.transformNode!.setParent(standLowerLeft!.transformNode!);
+        supportArm!.transformNode!.rotationQuaternion = null;
+        supportArm!.transformNode!.rotation = new Vector3(Math.PI / 2, Math.PI, 0)
         // standLowerLeft!.transformNode!.setParent()
     }
+
+
 
 
     private addButton(component: TranslationElement | RotationElement) {
@@ -947,16 +1052,10 @@ class Game
         console.log(button.behaviors);
         this.buttonPanel!.addControl(button);
 
-        // var func = this.objectSelected;
 
         button.text = component.displayName;
         button.onPointerClickObservable.add((value) => {
-            console.log("BUTTON:", value);
-            // component.transformNode?.getChildMeshes().forEach((mesh) => {
-            //     // mesh.enableEdgesRendering();
-            // });
             this.objectSelected(component);
-            // func(component);
 
         });
         
@@ -964,24 +1063,39 @@ class Game
 
     private objectSelected(component: RotationElement | TranslationElement) 
     {
-        console.log("IN OBJECT SELECTED")
         if (this.selectedComponent)
         {
             this.selectedComponent.transformNode!.getChildMeshes().forEach((mesh) => {
                 mesh.disableEdgesRendering();
             })
         }
-
-        this.selectedComponent = component;
         // this.degreeMesh!.parent = component.transformNode!;
-        this.degreeMesh!.position = new Vector3(0, 300, 0);
+        // this.degreeMesh!.position = new Vector3(0, 300, 0);
         // this.degreeMesh!.visibility = 1;
-        this.degreeMesh!.scaling = new Vector3(100, 100, 100);
-        this.degreeLabel!.text = component.displayName + component.transformNode!.rotation.z;
+        // this.degreeMesh!.scaling = new Vector3(100, 100, 100);
+        // this.degreeLabel!.text = component.displayName + component.transformNode!.rotation.z;
+        
+        this.selectedComponent = null;
+        this.configureSlider(component);
+        this.selectedComponent = component;
         this.selectedComponent.transformNode!.getChildMeshes().forEach((mesh) => {
             mesh.enableEdgesRendering();
         })
-        this.configureSlider(component);
+    }
+
+    private configureKinematicsSliders()
+    {
+        this.sliderPanel!.clearControls();
+        for(var i = 0; i < 5; i++)
+        {
+            // x: -100, 100
+            // y: -50, 150
+            // z: -100, 100
+            console.log("adding slider:", this.kinematicsSliders[i].name!)
+            this.sliderPanel!.addControl(this.kinematicSliderHeaders[i]);
+            this.sliderPanel!.addControl(this.kinematicsSliders[i]);
+        }
+        this.sliderPanel!.addControl(this.kinematicsButton);
     }
 
     private configureSlider(component: RotationElement | TranslationElement)
@@ -998,14 +1112,17 @@ class Game
             {
                 case Axis.X: {
                     this.slider!.value = component.transformNode!.position.x;
+                    console.log("setting slider value to:", component.transformNode!.position.x, component.low, component.high)
                     break;
                 }
                 case Axis.Y: {
                     this.slider!.value = component.transformNode!.position.y;
+                    console.log("setting slider value to:", component.transformNode!.position.y, component.low, component.high)
                     break;
                 }
                 case Axis.Z: {
                     this.slider!.value = component.transformNode!.position.z;
+                    console.log("setting slider value to:", component.transformNode!.position.z, component.low, component.high)
                     break;
                 }
             }
@@ -1015,6 +1132,12 @@ class Game
             component = component as RotationElement
             this.slider!.minimum = component.degreeLow;
             this.slider!.maximum = component.degreeHigh;
+            if(component.name == "supportArm")
+            {
+                this.slider!.value = component.transformNode!.rotation.x * (180 / Math.PI);
+            }
+            else
+            {
             var currentQuaternion = component.transformNode!.rotationQuaternion!.toEulerAngles();
             console.log("CURRENT QUAT:", currentQuaternion)
             switch (component.axis)
@@ -1033,6 +1156,7 @@ class Game
                 }
             }
         }
+        }
         var xSliderHeader = new TextBlock("xSliderHeader", component.displayName); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.height = "60px";
@@ -1042,9 +1166,10 @@ class Game
         xSliderHeader.left = "0px";
         xSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
-        // xSliderHeader.text = "test"
         this.sliderPanel!.addControl(xSliderHeader);
         this.sliderPanel!.addControl(this.slider);
+        this.sliderPanel!.addControl(this.buttonPanel1);
+        this.sliderPanel!.addControl(this.buttonPanel2);
     }
     // The main update loop will be executed once per frame before the scene is rendered
     private update() : void
@@ -1053,18 +1178,11 @@ class Game
         // this.updateMenuPosition();
     }
 
-    // this.rotationObjects.push(new RotationElement("needle", "Needle", -51, 51, Axis.Z))
-    //     this.rotationObjects.push(new RotationElement("supportArm", "Support Arm", 90, 235, Axis.X))
-    //     this.translationObjects.push(new TranslationElement("gimbal", "Gimbal", -100, 100, Axis.X))
-    //     this.translationObjects.push(new TranslationElement("standLowerLeft", "Lower Stand", -100, 100, Axis.Y))
-    //     this.translationObjects.push(new TranslationElement("standLowerRight", "Lower Stand", -100, 100, Axis.Y))
-    //     this.translationObjects.push(new TranslationElement("standUpperLeft", "Upper Stand", -60, 60, Axis.Z))
-    //     this.translationObjects.push(new TranslationElement("standUpperRight", "Upper Stand", -60, 60, Axis.Z))
-    //     this.translationObjects.push(new TranslationElement("trajectory", "Trajectory", -50, 80, Axis.Y))
+
 
     private performInverseKinematics()
     {
-        var targetPosition = this.target!.position;
+        var targetPosition = this.polarTransform!.position;
 
         var needle: RotationElement;
         var supportArm: RotationElement;
@@ -1073,28 +1191,25 @@ class Game
         var gimbal: TranslationElement;
 
         var needleEnd: Quaternion
-        var supportArmEnd: Quaternion
+        var supportArmEnd: number
         var standLowerRightEnd: number
         var standUpperRightEnd: number
         var gimbalEnd: number;
         var trajectory: TranslationElement
         
         for (let component of this.rotationObjects) {
-            var currentRotation = component.transformNode!.rotationQuaternion!.toEulerAngles();
+            
             // polar, x
             if (component.name == "supportArm")
             {
-                var rotationQuaternion = Quaternion.FromEulerAngles(this.targetPolar + Math.PI / 2, Math.PI, 0);
-                // component.transformNode!.rotationQuaternion = rotationQuaternion;
                 supportArm = component;
-                supportArmEnd = rotationQuaternion
-                // component.transformNode!.rotation.x = this.targetPolar + 90;
+                supportArmEnd = this.targetPolar + Math.PI / 2
             }
             // azimuthal, z
             else if (component.name == "needle")
             {
+                var currentRotation = component.transformNode!.rotationQuaternion!.toEulerAngles();
                 var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, currentRotation.y, this.targetAzimuth);
-                // component.transformNode!.rotationQuaternion = rotationQuaternion;
                 needle = component;
                 needleEnd = rotationQuaternion;
             }
@@ -1104,20 +1219,17 @@ class Game
         for (let component of this.translationObjects) {
             if (component.name === "standLowerRight")
             {
-                // component.transformNode!.position.y = targetPosition.y
                 standLowerRightEnd = targetPosition.y;
                 standLowerRight = component;
                 
             }
             else if (component.name == "standUpperRight")
             {
-                // component.transformNode!.position.z = targetPosition.z;
                 standUpperRight = component;
                 standUpperRightEnd = targetPosition.z;
             }
             else if (component.name == "gimbal")
             {
-                // component.transformNode!.position.x = targetPosition.x;
                 gimbal = component;
                 gimbalEnd = targetPosition.x;
             }
@@ -1128,7 +1240,7 @@ class Game
         this.makeTranslationAnimation(gimbal!, gimbalEnd!);
 
         this.makeRotationAnimation(needle!, needleEnd!);
-        this.makeRotationAnimation(supportArm!, supportArmEnd!);
+        this.makeSupportArmAnimation(supportArm!, supportArmEnd!);
 
         this.scene.beginAnimation(standLowerRight!.transformNode!, 0, 60, false);
         this.scene.beginAnimation(standUpperRight!.transformNode!, 0, 60, false);
@@ -1138,6 +1250,23 @@ class Game
         this.scene.beginAnimation(supportArm!.transformNode!, 0, 60, false);
 
         
+    }
+
+    private makeSupportArmAnimation(component: RotationElement, targetRotation: number)
+    {
+        var animation = new Animation("supportArmAnimation", "rotation.x", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys = [];
+        xKeys.push({
+            frame: 0,
+            value: component.transformNode!.rotation.x
+        })
+        xKeys.push({
+            frame: 60,
+            value: targetRotation
+        })
+        animation.setKeys(xKeys)
+        component.transformNode!.animations = [];
+        component.transformNode!.animations.push(animation);
     }
 
     private makeRotationAnimation(component: RotationElement, targetRotation: Quaternion)
@@ -1212,37 +1341,6 @@ class Game
         }
     }
 
-    // var currentRotation = this.selectedComponent.transformNode!.rotationQuaternion!.toEulerAngles();
-    // console.log("Rotating:", value, currentRotation);
-    // switch (this.selectedComponent.axis)
-    // {
-    //     case Axis.X: {
-    //         if (this.selectedComponent.name == "supportArm")
-    //         {
-    //             var rotationQuaternion = Quaternion.FromEulerAngles(value * (Math.PI / 180), Math.PI, 0);
-    //             this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion;
-
-    //         }
-    //         else 
-    //         {
-    //             var rotationQuaternion = Quaternion.FromEulerAngles(value  * (Math.PI / 180), currentRotation.y, currentRotation.z);
-    //             this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
-    //             // this.selectedComponent.transformNode!.rotation.x = value * (Math.PI / 180);
-    //         }
-    //         break;
-    //     }
-    //     case Axis.Y: {
-    //         var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, value  * (Math.PI / 180), currentRotation.z);
-    //         this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
-    //         break;
-    //     }
-    //     case Axis.Z: {
-    //         var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, currentRotation.y, value * (Math.PI / 180));
-    //         this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
-    //         break;
-    //     }
-    // }
-
     private updateMenuPosition()
     {
         this.buttonPanel!.position = this.xrCamera!.position;
@@ -1255,8 +1353,6 @@ class Game
         {
             this.performControllerMode();
         }
-    //     this.onRightB(this.rightController?.motionController?.getComponent("b-button"));
-        // this.onRightThumbstick(this.rightController?.motionController?.getComponent("xr-standard-thumbstick"));   
     }
 
 
@@ -1289,7 +1385,6 @@ class Game
         var value = thumbstick.axes.y
         scalingFactor = (1+ value + 0.000005) * scalingFactor
         controllerRotation = -controllerRotation * (180 / Math.PI);
-        console.log("CONTROLLER ROT:", controllerRotation)
         if (Math.abs(controllerRotation) < 5)
         {
             return 0
@@ -1365,73 +1460,3 @@ class Game
 // start the game
 var game = new Game();
 game.start();
-
-// class Sliders
-// {
-//     private xSlider: Slider
-//     private ySlider: Slider;
-//     private zSlider: Slider;
-
-//     private xSliderHeader: Control
-//     private ySliderHeader: Control;
-//     private zSliderHeader: Control;
-
-
-//     constructor()
-//     {
-//         var xSlider = new Slider();
-//         xSlider.minimum = 0;
-//         xSlider.maximum = 360;
-//         xSlider.value = 0;
-//         xSlider.color = "lightblue";
-//         xSlider.height = "50px";
-//         xSlider.width = "500px";
-
-//         var ySlider = new Slider();
-//         ySlider.minimum = 0;
-//         ySlider.maximum = 360;
-//         ySlider.value = 0;
-//         ySlider.color = "lightblue";
-//         ySlider.height = "50px";
-//         ySlider.width = "500px";
-
-//         var zSlider = new Slider();
-//         zSlider.minimum = 0;
-//         zSlider.maximum = 360;
-//         zSlider.value = 0;
-//         zSlider.color = "lightblue";
-//         zSlider.height = "50px";
-//         zSlider.width = "500px";
-
-//         this.xSlider = xSlider;
-//         this.ySlider = ySlider;
-//         this.zSlider = zSlider;
-
-//         var xSliderHeader = Control.AddHeader(xSlider, "x", "50px", {isHorizontal: true, controlFirst: false});
-//         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-//         xSliderHeader.height = "75px";
-//         xSliderHeader.fontSize = "48px";
-//         xSliderHeader.color = "white";
-//         // sliderPanel.addControl(xSliderHeader);
-
-//         var ySliderHeader = Control.AddHeader(ySlider, "y", "50px", {isHorizontal: true, controlFirst: false});
-//         ySliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-//         ySliderHeader.height = "75px";
-//         ySliderHeader.fontSize = "48px";
-//         ySliderHeader.color = "white";
-//         // sliderPanel.addControl(ySliderHeader);
-
-//         var zSliderHeader = Control.AddHeader(zSlider, "z", "50px", {isHorizontal: true, controlFirst: false});
-//         zSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
-//         zSliderHeader.height = "75px";
-//         zSliderHeader.fontSize = "48px";
-//         zSliderHeader.color = "white";
-//         // sliderPanel.addControl(zSliderHeader);
-
-//         this.xSliderHeader = xSliderHeader;
-//         this.ySliderHeader = ySliderHeader;
-//         this.zSliderHeader = zSliderHeader
-
-        
-//     }
-// }
