@@ -442,9 +442,6 @@ class Game
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name, mesh.parent ?.id);
                 this.headMeshes.push(mesh);
-                mesh.visibility = 0;
-
-
             });
             
         });
@@ -912,7 +909,7 @@ class Game
         var rnSlider = new Slider("rn");
         var snSlider = new Slider("sn");
         var stnSlider = new Slider("stn");
-        var thalmusSlider = new Slider("thalmus");
+        var thalmusSlider = new Slider("thalamus");
         var vasculatureSlider = new Slider("vasculature");
         var brainSlider = new Slider("brain");
         var skullSlider = new Slider("skull");
@@ -964,10 +961,30 @@ class Game
                 var name = slider.name;
                 console.log("Slider changed to:", value);
                 this.headMeshes.forEach((mesh) => {
-                    if (name! == "acpc" && (mesh.name.startsWith("ac") || mesh.name.startsWith("pc"))) {
+                    if (name! == "acpc" && (mesh.name.toLowerCase().startsWith("ac") || mesh.name.toLowerCase().startsWith("pc"))) {
                         mesh.visibility = value;
-                    } else if (name! == "caudate" && (mesh.name.startsWith("caudate") || mesh.name.startsWith("caudate"))) {
-
+                    } else if (name! == "caudate" && (mesh.name.toLowerCase().startsWith("caudate") || mesh.name.toLowerCase().startsWith("caudate"))) {
+                        mesh.visibility = value;
+                    } else if (name! == "gpe" && mesh.name.toLowerCase().startsWith("gpe")) {
+                        mesh.visibility = value;
+                    } else if (name! == "gpi" && mesh.name.toLowerCase().startsWith("gpi")) {
+                        mesh.visibility = value;
+                    } else if (name! == "putamen" && mesh.name.toLowerCase().startsWith("putamen")) {
+                        mesh.visibility = value;
+                    } else if (name! == "rn" && mesh.name.toLowerCase().startsWith("rn")) {
+                        mesh.visibility = value;
+                    } else if (name! == "sn" && mesh.name.toLowerCase().startsWith("sn")) {
+                        mesh.visibility = value;
+                    } else if (name! == "stn" && mesh.name.toLowerCase().startsWith("stn")) {
+                        mesh.visibility = value;
+                    } else if (name! == "thalamus" && mesh.name.toLowerCase().startsWith("thalamus")) {
+                        mesh.visibility = value;
+                    } else if (name! == "vasculature" && mesh.name.toLowerCase().startsWith("vasculature")) {
+                        mesh.visibility = value;
+                    } else if (name! == "brain" && mesh.name.toLowerCase().startsWith("brain")) {
+                        mesh.visibility = value;
+                    } else if (name! == "skull" && mesh.name.toLowerCase().startsWith("skull")) {
+                        mesh.visibility = value;
                     }
                 });
             });
