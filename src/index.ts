@@ -930,6 +930,7 @@ class Game
         sliderArray.push(brainSlider);
         sliderArray.push(skullSlider);
 
+        var headMeshesIndex = 0;
         sliderArray.forEach((slider) => {
             var panel = new StackPanel();
             panel.name = slider.name + " panel";
@@ -940,7 +941,7 @@ class Game
 
             slider.widthInPixels = 300;
             slider.heightInPixels = 50;
-            xSlider.color = "lightblue";
+            slider.color = "lightblue";
             slider.top = "0px";
             slider.barOffset = "10px";
             slider.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
@@ -960,8 +961,15 @@ class Game
 
             // Visibility slider event handlers
             slider.onValueChangedObservable.add((value) => {
-                // configurableMeshTransform.rotation.x = value * Math.PI / 180;
-                console.log("Slider changed to:", value)
+                var name = slider.name;
+                console.log("Slider changed to:", value);
+                this.headMeshes.forEach((mesh) => {
+                    if (name! == "acpc" && (mesh.name.startsWith("ac") || mesh.name.startsWith("pc"))) {
+                        mesh.visibility = value;
+                    } else if (name! == "caudate" && (mesh.name.startsWith("caudate") || mesh.name.startsWith("caudate"))) {
+
+                    }
+                });
             });
         });
 
