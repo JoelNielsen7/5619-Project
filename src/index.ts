@@ -499,7 +499,7 @@ class Game
 
         SceneLoader.ImportMesh("", "assets/models/", "Head.glb", this.scene, (meshes) => {
             meshes[0].name = "head"
-            meshes[0].position = new Vector3(3, 0.5, 1.5);
+            meshes[0].position = new Vector3(0, 0.5, 4.5);
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
             meshes[0].rotation = new Vector3(0, 0, Math.PI)
             meshes.forEach((mesh) => {
@@ -957,7 +957,7 @@ class Game
         var sliderConfigTransform = new TransformNode("settingsTransform");
 
         var sliderConfigPlane = MeshBuilder.CreatePlane("configPlane", { width: 1.5, height: 3 }, this.scene);
-        sliderConfigPlane.position = new Vector3(7, 2, 1);
+        sliderConfigPlane.position = new Vector3(3, 2, 2);
         sliderConfigPlane.parent = sliderConfigTransform;
 
         var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 770);
@@ -1001,7 +1001,6 @@ class Game
         sliderArray.push(brainSlider);
         sliderArray.push(skullSlider);
 
-        var headMeshesIndex = 0;
         sliderArray.forEach((slider) => {
             var panel = new StackPanel();
             panel.name = slider.name + " panel";
