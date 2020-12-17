@@ -968,22 +968,31 @@ class Game
         // Brain visibility configuration
         var sliderConfigTransform = new TransformNode("settingsTransform");
 
-        var sliderConfigPlane = MeshBuilder.CreatePlane("configPlane", { width: 1.5, height: 3 }, this.scene);
+        var sliderConfigPlane = MeshBuilder.CreatePlane("configPlane", { width: 1.5, height: 3.2 }, this.scene);
         sliderConfigPlane.position = new Vector3(3, 2, 2);
         sliderConfigPlane.parent = sliderConfigTransform;
 
-        var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 770);
+        var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 830);
         sliderConfigTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
 
         this.headButtonPanel = new StackPanel();
         this.headButtonPanel.name = "visibility sliders"
         this.headButtonPanel.widthInPixels = 675;
-        this.headButtonPanel.heightInPixels = 720;
+        this.headButtonPanel.heightInPixels = 780;
         this.headButtonPanel.isVertical = true;
         this.headButtonPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
         this.headButtonPanel.paddingLeftInPixels = 25;
         this.headButtonPanel.paddingTopInPixels = 0;
         sliderConfigTexture.addControl(this.headButtonPanel);
+
+        var visHeader = new TextBlock("visibilityHeader", "Visibility");
+        visHeader.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+        visHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        visHeader.color = "white";
+        visHeader.fontSize = "48px";
+        visHeader.heightInPixels = 50;
+        visHeader.widthInPixels = 600;
+        this.headButtonPanel.addControl(visHeader);
 
         var sliderArray = [];
 
