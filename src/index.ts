@@ -606,7 +606,7 @@ class Game
                 this.sliderPanel!.addControl(this.buttonPanel2)
 
                 if (this.selectedComponent) {
-                    this.sliderHeader!.text = this.selectedComponent.displayName + ": " + this.slider!.value;
+                    this.sliderHeader!.text = this.selectedComponent.displayName + ": " + this.slider!.value.toFixed(3);
                 }
                 
 
@@ -699,7 +699,7 @@ class Game
 
             this.kinematicsSliders.push(kSlider);
 
-            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i] + ": " + kSlider.value); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
+            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i] + ": " + kSlider.value.toFixed(3)); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
             // kSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
             kSliderHeader.height = "60px";
             kSliderHeader.fontSize = "48px";
@@ -714,25 +714,25 @@ class Game
 
         this.kinematicsSliders[0].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.x = value;
-            this.kinematicSliderHeaders[0].text = kinematicLabels[0] + ": " + value;
+            this.kinematicSliderHeaders[0].text = kinematicLabels[0] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[1].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.y = value;
-            this.kinematicSliderHeaders[1].text = kinematicLabels[1] + ": " + value;
+            this.kinematicSliderHeaders[1].text = kinematicLabels[1] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[2].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.z = value;
-            this.kinematicSliderHeaders[2].text = kinematicLabels[2] + ": " + value;
+            this.kinematicSliderHeaders[2].text = kinematicLabels[2] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[3].onValueChangedObservable.add((value) => {
             this.polarTransform!.rotation.x = -value * (Math.PI / 180)
             this.targetPolar = value * (Math.PI / 180);
-            this.kinematicSliderHeaders[3].text = kinematicLabels[3] + ": " + value;
+            this.kinematicSliderHeaders[3].text = kinematicLabels[3] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[4].onValueChangedObservable.add((value) => {
             this.targetAzimuth = -value * (Math.PI / 180);
             this.azimuthalTransform!.rotation.y = value * Math.PI / 180;
-            this.kinematicSliderHeaders[4].text = kinematicLabels[4] + ": " + value;
+            this.kinematicSliderHeaders[4].text = kinematicLabels[4] + ": " + value.toFixed(3);
         })
 
         var kButton = Button.CreateSimpleButton("kinematicsButton", "Go");
@@ -772,7 +772,7 @@ class Game
             {
                 // configurableMeshTransform.rotation.x = value * Math.PI / 180;
                 console.log("Slider changed to:", value);
-                this.sliderHeader!.text = this.selectedComponent.displayName + ": " + value;
+                this.sliderHeader!.text = this.selectedComponent.displayName + ": " + value.toFixed(3);
 
                 if (this.selectedComponent)
                 {
@@ -1296,7 +1296,7 @@ class Game
         }
         }
 
-        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName + ": " + this.slider!.value); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
+        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName + ": " + this.slider!.value.toFixed(3)); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
