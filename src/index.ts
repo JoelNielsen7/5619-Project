@@ -44,6 +44,7 @@ import { Animation } from "@babylonjs/core/Animations/animation";
 import "@babylonjs/core/Helpers/sceneHelpers";
 import "@babylonjs/inspector";
 import { LineContainerComponent } from "@babylonjs/inspector/components/actionTabs/lineContainerComponent";
+import { Transform } from "stream";
 
 enum Mode 
 {
@@ -203,7 +204,7 @@ class Game
 
     private headButtonPanel: StackPanel | null;
 
-
+    private menuTransform: TransformNode | null;
 
     private trajectory: AbstractMesh | null;
 
@@ -267,6 +268,8 @@ class Game
         this.buttonPanel = null;
 
         this.headButtonPanel = null;
+
+        this.menuTransform = null;
         
         this.trajectory = null;
 
@@ -509,6 +512,9 @@ class Game
             
         });
 
+
+        var menuTransform = new TransformNode("menuTransform");
+        this.menuTransform = menuTransform;
 
         // Create a parent transform for the object configuration panel
         var configTransform = new TransformNode("textTransform");
@@ -1084,6 +1090,10 @@ class Game
             });
         });
 
+        // Add menu transforms to a root node
+        configTransform.setParent(menuTransform);
+        sliderConfigTransform.setParent(menuTransform);
+
         this.scene.debugLayer.show(); 
     }
 
@@ -1317,7 +1327,7 @@ class Game
     private update() : void
     {
         this.processControllerInput();
-        // this.updateMenuPosition();
+        // this.resetMenuPosition();
     }
 
 
@@ -1483,6 +1493,19 @@ class Game
         }
     }
 
+    private resetMenuPosition() {
+        this.menuTransform!.position = this.xrCamera!.getFrontPosition(1);
+        this.menuTransform!.position.y = 0;
+
+        var lookDir = this.xrCamera!.getForwardRay().direction;
+        if (lookDir.z < 0) {
+            this.menuTransform!.rotation.y = -Math.PI / 2 - Math.acos(-lookDir.x);
+
+        } else {
+            this.menuTransform!.rotation.y = Math.PI / 2 - Math.acos(lookDir.x);
+        }
+    }
+
     private updateMenuPosition()
     {
         this.buttonPanel!.position = this.xrCamera!.position;
@@ -1490,6 +1513,7 @@ class Game
 
     private processControllerInput()
     {
+        this.onLeftY(this.leftController ?.motionController?.getComponent("y-button"));
         this.onRightA(this.rightController?.motionController?.getComponent("a-button"));
         if (this.controllerMode && this.selectedComponent)
         {
@@ -1585,6 +1609,12 @@ class Game
                 value = value * 0.2
             }
             this.selectedComponent!.transformNode!.translate(this.selectedComponent!.axis, value, Space.LOCAL)
+        }
+    }
+
+    private onLeftY(component?: WebXRControllerComponent) {
+        if (component ?.changes.pressed ?.current) {
+            this.resetMenuPosition();
         }
     }
 
