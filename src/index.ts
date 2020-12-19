@@ -26,6 +26,7 @@ import { Slider } from "@babylonjs/gui/2D/controls/sliders/slider"
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader"
 import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Axis, Space } from "@babylonjs/core/Maths/math.axis"
+import { Plane } from "@babylonjs/core/Maths/math.plane"
 import { Ray } from "@babylonjs/core/Culling/ray";
 import { GUI3DManager } from "@babylonjs/gui/3D/gui3DManager"
 import { CylinderPanel } from "@babylonjs/gui/3D/controls/cylinderPanel"
@@ -37,6 +38,7 @@ import { StackPanel3D } from "@babylonjs/gui/3D/controls/stackPanel3D"
 import { WebXRControllerComponent } from "@babylonjs/core/XR/motionController/webXRControllerComponent";
 import { Rectangle } from "@babylonjs/gui/2D/controls/rectangle"
 import { Animation } from "@babylonjs/core/Animations/animation";
+import { Tools } from "@babylonjs/inspector/tools"
 // import { Line } from "@babylonjs/gui/2D/controls/line"
 // import { Line } from "@babylonjs/core/"
 
@@ -49,7 +51,8 @@ enum Mode
 {
     playground,
     kinematics,
-    settings
+    settings,
+    brain
 }
 
 class RotationElement
@@ -180,6 +183,8 @@ class Game
 
     private fiveProbeMeshes: AbstractMesh[];
     private headMeshes: AbstractMesh[];
+    private rootHeadMesh: AbstractMesh | null;
+    private rootMachineMesh: AbstractMesh | null;
 
     private mode: Mode;
 
@@ -221,6 +226,7 @@ class Game
     private kinematicSliderHeaders: TextBlock[];
     private kinematicsSliders: Slider[];
     private kinematicsButton: Button | null;
+    private brainModeButton: Button | null;
 
     private targetLine: Mesh | null;
     
@@ -229,6 +235,12 @@ class Game
 
     private buttonPanel1: StackPanel | null;
     private buttonPanel2: StackPanel | null;
+
+    private mainMenuPlane: Mesh | null;
+    private alphaMenuPlane: Mesh | null;
+
+    private s1: Mesh | null;
+    private s2: Mesh | null;
 
     constructor()
     {
@@ -249,6 +261,8 @@ class Game
 
         this.fiveProbeMeshes = [];
         this.headMeshes = [];
+        this.rootHeadMesh = null;
+        this.rootMachineMesh = null;
 
         this.mode = Mode.playground
 
@@ -284,6 +298,7 @@ class Game
         this.kinematicsSliders = [];
         this.kinematicSliderHeaders = [];
         this.kinematicsButton = null;
+        this.brainModeButton = null;
         this.targetLine = null;
 
         this.polarTransform = null;
@@ -291,6 +306,12 @@ class Game
 
         this.buttonPanel1 = null;
         this.buttonPanel2 = null;
+
+        this.mainMenuPlane = null;
+        this.alphaMenuPlane = null;
+
+        this.s1 = null;
+        this.s2 = null;
     }
 
     start() : void 
@@ -394,7 +415,8 @@ class Game
 
         // lines creation
         
-        
+        this.s1 = MeshBuilder.CreateSphere("rightCont", {diameter: 0.1}, this.scene);
+        this.s2 = MeshBuilder.CreateSphere("leftCont", {diameter: 0.1}, this.scene);
 
         var target = MeshBuilder.CreateSphere("sphere", {'diameter': 10}, this.scene);
         this.target = target;
@@ -410,6 +432,8 @@ class Game
         targetLine.material = targetLineMat;
         targetLine.visibility = 1;
         var polarTransform = new TransformNode("polar")
+        this.s1.setParent(polarTransform)
+        this.s2.setParent(polarTransform)
         var azimuthalTransform = new TransformNode("azimuth")
 
         var lineTransformNodeDynamic = new TransformNode("angleDynamic");
@@ -440,6 +464,7 @@ class Game
             azimuthalTransform.parent = polarTransform;
             target.parent = azimuthalTransform;
             target.visibility = 0;
+            this.rootMachineMesh = meshes[0];
             this.polarTransform = polarTransform;
             this.azimuthalTransform = azimuthalTransform;
             meshes.forEach((mesh) => {
@@ -502,6 +527,7 @@ class Game
             meshes[0].position = new Vector3(0, 0.5, 4.5);
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
             meshes[0].rotation = new Vector3(0, 0, Math.PI)
+            this.rootHeadMesh = meshes[0];
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name, mesh.parent ?.id);
                 this.headMeshes.push(mesh);
@@ -519,6 +545,7 @@ class Game
         var configPlane = MeshBuilder.CreatePlane("configPlane", {width: 1.5, height: 1}, this.scene);
         
         configPlane.parent = configTransform;
+        this.mainMenuPlane = configPlane;
 
 
         // Create a dynamic texture the object configuration panel
@@ -675,7 +702,7 @@ class Game
         // azimuthal: -51, 51
         //
         var kinematicRanges = [new Vector2(-100, 100), new Vector2(-50, 150), new Vector2(-100, 100), new Vector2(0, 120), new Vector2(-51, 51)]
-        var kinematicLabels = ["X", "Y", "Z", "Polar", "Azimuth"]
+        var kinematicLabels = ["X: 0", "Y: 0", "Z: 0", "Polar: 0", "Azimuth: 0"]
 
         for(var i = 0; i < 5; i++)
         {
@@ -710,20 +737,25 @@ class Game
 
         this.kinematicsSliders[0].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.x = value;
+            this.kinematicSliderHeaders[0].text = "X: " + (value | 0);
         })
         this.kinematicsSliders[1].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.y = value;
+            this.kinematicSliderHeaders[1].text = "Y: " + (value | 0);
         })
         this.kinematicsSliders[2].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.z = value;
+            this.kinematicSliderHeaders[2].text = "Z: " + (value | 0);
         })
         this.kinematicsSliders[3].onValueChangedObservable.add((value) => {
             this.polarTransform!.rotation.x = -value * (Math.PI / 180)
             this.targetPolar = value * (Math.PI / 180);
+            this.kinematicSliderHeaders[3].text = "Polar: " + (value | 0);
         })
         this.kinematicsSliders[4].onValueChangedObservable.add((value) => {
             this.targetAzimuth = -value * (Math.PI / 180);
             this.azimuthalTransform!.rotation.y = value * Math.PI / 180;
+            this.kinematicSliderHeaders[4].text = "Azimuth: " + (value | 0);
         })
 
         var kButton = Button.CreateSimpleButton("kinematicsButton", "Go");
@@ -738,6 +770,19 @@ class Game
         })
 
         this.kinematicsButton = kButton;
+
+        var brainModeButton = Button.CreateSimpleButton("kinematicsButton", "Brain Mode");
+        brainModeButton.paddingTop = "50px";
+        brainModeButton.width = "300px"
+        brainModeButton.height = "130px";
+        brainModeButton.background = "gray";
+        brainModeButton.color  = "white";
+        brainModeButton.textBlock!.fontSize = "48px";
+        brainModeButton.onPointerUpObservable.add((value) => {
+            this.enterBrainMode();
+        })
+
+        this.brainModeButton = brainModeButton;
         
 
         // Create text headers for the sliders
@@ -770,14 +815,17 @@ class Game
                     {
                         case Axis.X: {
                             this.selectedComponent.transformNode!.position.x = value;
+                            this.sliderHeader!.text += "X: " + (value | 0)
                             break;
                         }
                         case Axis.Y: {
                             this.selectedComponent.transformNode!.position.y = value;
+                            this.sliderHeader!.text += "Y: " + (value | 0)
                             break;
                         }
                         case Axis.Z: {
                             this.selectedComponent.transformNode!.position.z = value;
+                            this.sliderHeader!.text += "Z: " + (value | 0)
                             break;
                         }
 
@@ -957,8 +1005,10 @@ class Game
         var sliderConfigTransform = new TransformNode("settingsTransform");
 
         var sliderConfigPlane = MeshBuilder.CreatePlane("configPlane", { width: 1.5, height: 3 }, this.scene);
-        sliderConfigPlane.position = new Vector3(3, 2, 2);
+        sliderConfigPlane.position = new Vector3(2.2, 2, 2);
+        sliderConfigPlane.rotation = new Vector3(0, 40 * (Math.PI / 180), 0);
         sliderConfigPlane.parent = sliderConfigTransform;
+        this.alphaMenuPlane = sliderConfigPlane;
 
         var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 770);
         sliderConfigTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
@@ -1064,6 +1114,31 @@ class Game
         });
 
         this.scene.debugLayer.show(); 
+    }
+
+    private enterBrainMode()
+    {
+        this.mainMenuPlane!.visibility = 0;
+        this.alphaMenuPlane!.visibility = 0;
+        this.mode = Mode.brain;
+        // workaround to make it disappear
+        // this.rootMachineMesh!.position.y = 50;
+
+        // brain target vector = (0, 1, 0.5)
+        this.makeBrainAnimation(false);
+        this.makeProbeAnimation(false);
+        this.makeMenusAnimation(false)
+    }
+
+    private exitBrainMode()
+    {
+        this.mainMenuPlane!.visibility = 1;
+        this.alphaMenuPlane!.visibility = 1;
+        this.mode = Mode.playground;
+
+        this.makeBrainAnimation(true);
+        this.makeProbeAnimation(true);
+        this.makeMenusAnimation(true);
     }
 
     private addRegularButton(component: RotationElement | TranslationElement, row: number)
@@ -1213,6 +1288,7 @@ class Game
             this.sliderPanel!.addControl(this.kinematicsSliders[i]);
         }
         this.sliderPanel!.addControl(this.kinematicsButton);
+        this.sliderPanel!.addControl(this.brainModeButton);
     }
 
     private configureSlider(component: RotationElement | TranslationElement)
@@ -1284,6 +1360,7 @@ class Game
         xSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
         this.sliderPanel!.addControl(xSliderHeader);
+        // this.sliderPanel!.addControl(this.sliderHeader);
         this.sliderPanel!.addControl(this.slider);
         this.sliderPanel!.addControl(this.buttonPanel1);
         this.sliderPanel!.addControl(this.buttonPanel2);
@@ -1367,6 +1444,179 @@ class Game
         this.scene.beginAnimation(supportArm!.transformNode!, 0, 60, false);
 
         
+    }
+
+    private makeMenusAnimation(reverse: boolean)
+    {
+        
+        var animation = new Animation("menus", "visibility", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys = [];
+        if (reverse)
+        {
+            xKeys.push({
+                frame: 0,
+                value: 0
+            })
+            xKeys.push({
+                frame: 55,
+                value: 0
+            })
+            xKeys.push({
+                frame: 60,
+                value: 1
+            })
+        }
+        else
+        {
+            xKeys.push({
+                frame: 0,
+                value: 1
+            })
+            xKeys.push({
+                frame: 20,
+                value: 0
+            })
+            xKeys.push({
+                frame: 60,
+                value: 0
+            })
+        }
+        
+        animation.setKeys(xKeys)
+        this.mainMenuPlane!.animations = [];
+        this.mainMenuPlane!.animations.push(animation);
+        this.alphaMenuPlane!.animations.push(animation)
+        this.scene.beginAnimation(this.mainMenuPlane!, 0, 60, false);
+        this.scene.beginAnimation(this.alphaMenuPlane!, 0, 60, false);
+        
+    }
+
+    private makeProbeAnimation(reverse: boolean)
+    {
+        var animation = new Animation("probe", "position", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys = [];
+        if (reverse)
+        {
+            xKeys.push({
+                frame: 0,
+                value: this.rootMachineMesh!.position
+            })
+            xKeys.push({
+                frame: 60,
+                value: new Vector3(0, 0.8, 4.2)
+            })
+        }
+        else
+        {
+            xKeys.push({
+                frame: 0,
+                value: this.rootMachineMesh!.position
+            })
+            xKeys.push({
+                frame: 60,
+                value: new Vector3(0, 1, 0.6)
+            })
+        }
+        
+        animation.setKeys(xKeys)
+        this.rootMachineMesh!.animations = [];
+        this.rootMachineMesh!.animations.push(animation);
+
+        var animation2 = new Animation("probe", "scaling", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys2 = [];
+        if (reverse)
+        {
+            xKeys2.push({
+                frame: 0,
+                value: this.rootMachineMesh!.scaling
+            })
+            xKeys2.push({
+                frame: 60,
+                value: new Vector3(0.01, 0.01, 0.01)
+            })
+        }
+        else 
+        {
+            xKeys2.push({
+                frame: 0,
+                value: this.rootMachineMesh!.scaling
+            })
+            xKeys2.push({
+                frame: 60,
+                value: new Vector3(0.03, 0.03, 0.03)
+            })
+        }
+        
+        animation2.setKeys(xKeys2)
+        this.rootMachineMesh!.animations.push(animation2);
+
+        // this.scene.beginAnimation(this.rootHeadMesh!, 0, 60, false);
+        // this.scene.beginAnimation(this.rootHeadMesh!, 0, 60, false);
+        this.scene.beginDirectAnimation(this.rootMachineMesh!, [animation, animation2], 0, 60, false)
+    }
+
+    private makeBrainAnimation(reverse: boolean)
+    {
+        var animation = new Animation("brain", "position", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys = [];
+        if (reverse)
+        {
+            xKeys.push({
+                frame: 0,
+                value: this.rootHeadMesh!.position
+            })
+            xKeys.push({
+                frame: 60,
+                value: new Vector3(0, 0.8, 4.5)
+            })
+        }
+        else
+        {
+            xKeys.push({
+                frame: 0,
+                value: this.rootHeadMesh!.position
+            })
+            xKeys.push({
+                frame: 60,
+                value: new Vector3(0, 1, 0.5)
+            })
+        }
+        
+        animation.setKeys(xKeys)
+        this.rootHeadMesh!.animations = [];
+        this.rootHeadMesh!.animations.push(animation);
+
+        var animation2 = new Animation("brain", "scaling", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+        var xKeys2 = [];
+        if (reverse)
+        {
+            xKeys2.push({
+                frame: 0,
+                value: this.rootHeadMesh!.scaling
+            })
+            xKeys2.push({
+                frame: 60,
+                value: new Vector3(0.01, 0.01, 0.01)
+            })
+        }
+        else 
+        {
+            xKeys2.push({
+                frame: 0,
+                value: this.rootHeadMesh!.scaling
+            })
+            xKeys2.push({
+                frame: 60,
+                value: new Vector3(0.03, 0.03, 0.03)
+            })
+        }
+        
+        animation2.setKeys(xKeys2)
+        this.rootHeadMesh!.animations.push(animation2);
+
+        // this.scene.beginAnimation(this.rootHeadMesh!, 0, 60, false);
+        // this.scene.beginAnimation(this.rootHeadMesh!, 0, 60, false);
+        this.scene.beginDirectAnimation(this.rootHeadMesh!, [animation, animation2], 0, 60, false)
     }
 
     private makeSupportArmAnimation(component: RotationElement, targetRotation: number)
@@ -1466,9 +1716,106 @@ class Game
     private processControllerInput()
     {
         this.onRightA(this.rightController?.motionController?.getComponent("a-button"));
+        this.onLeftA(this.leftController?.motionController?.getComponent("x-button"));
         if (this.controllerMode && this.selectedComponent)
         {
             this.performControllerMode();
+        }
+        this.onLeftThumbstick(this.leftController ?.motionController ?.getComponent("xr-standard-thumbstick"));
+        this.onRightSqueeze(this.rightController?.motionController?.getComponent("xr-standard-squeeze"));
+        this.onLeftSqueeze(this.leftController?.motionController?.getComponent("xr-standard-squeeze"));
+    }
+
+    private onRightSqueeze(component?: WebXRControllerComponent) 
+    {
+        if(component?.pressed && this.mode == Mode.brain)
+        {
+            this.polarTransform!.setAbsolutePosition(this.rightController!.grip!.position)
+            // Scale manipulation
+            // var bimanualVector = this.rightController!.grip!.position.subtract(this.leftController!.grip!.position);
+            // var previousBimanualVector = this.previousRightControllerPosition.subtract(this.previousLeftControllerPosition);
+            // var scaleFactor = bimanualVector.length() / previousBimanualVector.length();
+            // this.selectedObject.scaling = this.selectedObject.scaling.scale(scaleFactor);
+        }
+    }
+
+    private onLeftSqueeze(component?: WebXRControllerComponent) 
+    {
+        if(component?.pressed && this.mode == Mode.brain)
+        {
+            // rotation maths
+            var leftPos = this.leftController!.grip!.position;
+            var rightPos = this.rightController!.grip!.position;
+
+            var diff = leftPos.subtract(rightPos).normalize()
+
+            var polar = Math.atan2(diff.z, diff.y);
+
+
+
+            var polarDegrees = polar * (180 / Math.PI)
+            if (polarDegrees > 0 || polarDegrees < -120)
+            {
+                if (Math.abs(polarDegrees) > 120)
+                {
+                    polar = -120 * (Math.PI / 180)
+                }
+                else
+                {
+                    polar = 0;
+                }
+                
+            }
+
+            this.polarTransform!.rotation.x = polar;
+
+
+            // var azimuth = Math.atan2(projPlane.z, projPlane.y)
+
+            
+            this.s1!.setAbsolutePosition(rightPos);
+            this.s2!.setAbsolutePosition(leftPos);
+            
+
+            var diffNew = this.s2!.position.subtract(this.s1!.position);
+
+            var azi = Math.atan2(diffNew.x, diffNew.z);
+
+            if (azi < -51)
+            {
+                azi = -51
+            }
+            else if (azi > 51)
+            {
+                azi = 51;
+            }
+
+            this.azimuthalTransform!.rotation.y = azi;
+            
+        }
+    }
+
+
+    private onLeftThumbstick(component?: WebXRControllerComponent) {
+        if (component ?.changes.axes) {
+            // Get the current hand direction
+            var leftDirectionVector = this.leftController!.pointer.forward;
+            var rightDirectionVector = this.rightController!.pointer.forward;
+
+            var sumDirectionVector = leftDirectionVector.add(rightDirectionVector).normalize();
+
+            var moveDistance = -component!.axes.y * (this.engine.getDeltaTime() / 1000) * 0.5;
+
+            // Translate the camera forward
+            sumDirectionVector.y = 0;
+            this.xrCamera!.position.addInPlace(sumDirectionVector.scale(moveDistance));
+
+            // Use delta time to calculate the turn angle based on speed of 60 degrees/sec
+            var turnAngle = component!.axes.x * (this.engine.getDeltaTime() / 1000) * 45;
+
+            // Smooth turning
+            var cameraRotation = Quaternion.FromEulerAngles(0, turnAngle * Math.PI / 180, 0);
+            this.xrCamera!.rotationQuaternion.multiplyInPlace(cameraRotation);
         }
     }
 
@@ -1561,6 +1908,18 @@ class Game
             }
             this.selectedComponent!.transformNode!.translate(this.selectedComponent!.axis, value, Space.LOCAL)
         }
+    }
+
+    private onLeftA(component?: WebXRControllerComponent)
+    {  
+        if (this.mode == Mode.brain)
+        {
+            if(component?.changes.pressed?.current)
+        {
+            this.exitBrainMode();
+        }
+        }
+        
     }
 
     private onRightA(component?: WebXRControllerComponent)
