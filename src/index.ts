@@ -631,6 +631,10 @@ class Game
                 this.target!.visibility = 0;
                 this.sliderPanel!.addControl(this.buttonPanel1)
                 this.sliderPanel!.addControl(this.buttonPanel2)
+
+                if (this.selectedComponent) {
+                    this.sliderHeader!.text = this.selectedComponent.displayName + ": " + this.slider!.value;
+                }
                 
 
                 this.target!.visibility = 0;
@@ -722,7 +726,7 @@ class Game
 
             this.kinematicsSliders.push(kSlider);
 
-            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i]); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
+            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i] + ": " + kSlider.value); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
             // kSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
             kSliderHeader.height = "60px";
             kSliderHeader.fontSize = "48px";
@@ -735,27 +739,24 @@ class Game
             this.kinematicSliderHeaders.push(kSliderHeader);
         }
 
-        this.kinematicsSliders[0].onValueChangedObservable.add((value) => {
-            this.polarTransform!.position.x = value;
-            this.kinematicSliderHeaders[0].text = "X: " + (value | 0);
-        })
+
         this.kinematicsSliders[1].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.y = value;
-            this.kinematicSliderHeaders[1].text = "Y: " + (value | 0);
+            this.kinematicSliderHeaders[1].text = kinematicLabels[1] + ": " + value;
         })
         this.kinematicsSliders[2].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.z = value;
-            this.kinematicSliderHeaders[2].text = "Z: " + (value | 0);
+            this.kinematicSliderHeaders[2].text = kinematicLabels[2] + ": " + value;
         })
         this.kinematicsSliders[3].onValueChangedObservable.add((value) => {
             this.polarTransform!.rotation.x = -value * (Math.PI / 180)
             this.targetPolar = value * (Math.PI / 180);
-            this.kinematicSliderHeaders[3].text = "Polar: " + (value | 0);
+            this.kinematicSliderHeaders[3].text = kinematicLabels[3] + ": " + value;
         })
         this.kinematicsSliders[4].onValueChangedObservable.add((value) => {
             this.targetAzimuth = -value * (Math.PI / 180);
             this.azimuthalTransform!.rotation.y = value * Math.PI / 180;
-            this.kinematicSliderHeaders[4].text = "Azimuth: " + (value | 0);
+            this.kinematicSliderHeaders[4].text = kinematicLabels[4] + ": " + value;
         })
 
         var kButton = Button.CreateSimpleButton("kinematicsButton", "Go");
@@ -804,71 +805,71 @@ class Game
 
         // Event handlers for the sliders
         xSlider.onValueChangedObservable.add((value) => {
-            if (this.selectedComponent){
-            // configurableMeshTransform.rotation.x = value * Math.PI / 180;
-            console.log("Slider changed to:", value)
             if (this.selectedComponent)
             {
-                if (this.selectedComponent instanceof TranslationElement)
-                {
-                    switch (this.selectedComponent.axis)
-                    {
-                        case Axis.X: {
-                            this.selectedComponent.transformNode!.position.x = value;
-                            this.sliderHeader!.text += "X: " + (value | 0)
-                            break;
-                        }
-                        case Axis.Y: {
-                            this.selectedComponent.transformNode!.position.y = value;
-                            this.sliderHeader!.text += "Y: " + (value | 0)
-                            break;
-                        }
-                        case Axis.Z: {
-                            this.selectedComponent.transformNode!.position.z = value;
-                            this.sliderHeader!.text += "Z: " + (value | 0)
-                            break;
-                        }
+                // configurableMeshTransform.rotation.x = value * Math.PI / 180;
+                console.log("Slider changed to:", value);
+                this.sliderHeader!.text = this.selectedComponent.displayName + ": " + value;
 
-
-                    }
-                }
-                else 
+                if (this.selectedComponent)
                 {
-                    var currentRotation = new Vector3(0, 0, 0);
-                    if(this.selectedComponent.name != "supportArm")
+                    if (this.selectedComponent instanceof TranslationElement)
                     {
-                        currentRotation = this.selectedComponent.transformNode!.rotationQuaternion!.toEulerAngles();
-                    }
-                    switch (this.selectedComponent.axis)
-                    {
-                        case Axis.X: {
-                            if (this.selectedComponent.name == "supportArm")
-                            {
-                                console.log("current rotation and value:", this.selectedComponent.transformNode!.rotation.x, value)
-                                this.selectedComponent.transformNode!.rotation.x = value * (Math.PI / 180);
-                                console.log("after:", this.selectedComponent.transformNode!.rotation.x, value)
+                        switch (this.selectedComponent.axis)
+                        {
+                            case Axis.X: {
+                                this.selectedComponent.transformNode!.position.x = value;
+                                break;
                             }
-                            else 
-                            {
-                                var rotationQuaternion = Quaternion.FromEulerAngles(value  * (Math.PI / 180), currentRotation.y, currentRotation.z);
+                            case Axis.Y: {
+                                this.selectedComponent.transformNode!.position.y = value;
+                                break;
+                            }
+                            case Axis.Z: {
+                                this.selectedComponent.transformNode!.position.z = value;
+                                break;
+                            }
+
+
+                        }
+                    }
+                    else 
+                    {
+                        var currentRotation = new Vector3(0, 0, 0);
+                        if(this.selectedComponent.name != "supportArm")
+                        {
+                            currentRotation = this.selectedComponent.transformNode!.rotationQuaternion!.toEulerAngles();
+                        }
+                        switch (this.selectedComponent.axis)
+                        {
+                            case Axis.X: {
+                                if (this.selectedComponent.name == "supportArm")
+                                {
+                                    console.log("current rotation and value:", this.selectedComponent.transformNode!.rotation.x, value)
+                                    this.selectedComponent.transformNode!.rotation.x = value * (Math.PI / 180);
+                                    console.log("after:", this.selectedComponent.transformNode!.rotation.x, value)
+                                }
+                                else 
+                                {
+                                    var rotationQuaternion = Quaternion.FromEulerAngles(value  * (Math.PI / 180), currentRotation.y, currentRotation.z);
+                                    this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
+                                }
+                                break;
+                            }
+                            case Axis.Y: {
+                                var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, value  * (Math.PI / 180), currentRotation.z);
                                 this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
+                                break;
                             }
-                            break;
-                        }
-                        case Axis.Y: {
-                            var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, value  * (Math.PI / 180), currentRotation.z);
-                            this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
-                            break;
-                        }
-                        case Axis.Z: {
-                            var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, currentRotation.y, value * (Math.PI / 180));
-                            this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
-                            break;
+                            case Axis.Z: {
+                                var rotationQuaternion = Quaternion.FromEulerAngles(currentRotation.x, currentRotation.y, value * (Math.PI / 180));
+                                this.selectedComponent.transformNode!.rotationQuaternion = rotationQuaternion// * Math.PI / 2;
+                                break;
+                            }
                         }
                     }
                 }
-            }
-        } else {console.log("component not selected in slider reaction")}
+            } else { console.log("component not selected in slider reaction"); }
         });
 
         var plane = Mesh.CreatePlane("plane", 2, this.scene);
@@ -1010,18 +1011,27 @@ class Game
         sliderConfigPlane.parent = sliderConfigTransform;
         this.alphaMenuPlane = sliderConfigPlane;
 
-        var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 770);
+        var sliderConfigTexture = AdvancedDynamicTexture.CreateForMesh(sliderConfigPlane, 700, 830);
         sliderConfigTexture.background = (new Color4(.5, .5, .5, .25)).toHexString();
 
         this.headButtonPanel = new StackPanel();
         this.headButtonPanel.name = "visibility sliders"
         this.headButtonPanel.widthInPixels = 675;
-        this.headButtonPanel.heightInPixels = 720;
+        this.headButtonPanel.heightInPixels = 780;
         this.headButtonPanel.isVertical = true;
         this.headButtonPanel.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
         this.headButtonPanel.paddingLeftInPixels = 25;
         this.headButtonPanel.paddingTopInPixels = 0;
         sliderConfigTexture.addControl(this.headButtonPanel);
+
+        var visHeader = new TextBlock("visibilityHeader", "Visibility");
+        visHeader.verticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+        visHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_LEFT;
+        visHeader.color = "white";
+        visHeader.fontSize = "48px";
+        visHeader.heightInPixels = 50;
+        visHeader.widthInPixels = 600;
+        this.headButtonPanel.addControl(visHeader);
 
         var sliderArray = [];
 
@@ -1350,7 +1360,8 @@ class Game
             }
         }
         }
-        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
+
+        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName + ": " + this.slider!.value); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
@@ -1359,6 +1370,9 @@ class Game
         xSliderHeader.left = "0px";
         xSliderHeader.textHorizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.textVerticalAlignment = StackPanel.VERTICAL_ALIGNMENT_CENTER;
+
+        this.sliderHeader = xSliderHeader;
+
         this.sliderPanel!.addControl(xSliderHeader);
         // this.sliderPanel!.addControl(this.sliderHeader);
         this.sliderPanel!.addControl(this.slider);
