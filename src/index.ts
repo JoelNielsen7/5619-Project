@@ -46,6 +46,7 @@ import { Tools } from "@babylonjs/inspector/tools"
 import "@babylonjs/core/Helpers/sceneHelpers";
 import "@babylonjs/inspector";
 import { LineContainerComponent } from "@babylonjs/inspector/components/actionTabs/lineContainerComponent";
+import { Transform } from "stream";
 
 enum Mode 
 {
@@ -208,7 +209,7 @@ class Game
 
     private headButtonPanel: StackPanel | null;
 
-
+    private menuTransform: TransformNode | null;
 
     private trajectory: AbstractMesh | null;
 
@@ -281,6 +282,8 @@ class Game
         this.buttonPanel = null;
 
         this.headButtonPanel = null;
+
+        this.menuTransform = null;
         
         this.trajectory = null;
 
@@ -536,6 +539,9 @@ class Game
         });
 
 
+        var menuTransform = new TransformNode("menuTransform");
+        this.menuTransform = menuTransform;
+
         // Create a parent transform for the object configuration panel
         var configTransform = new TransformNode("textTransform");
         configTransform.position = new Vector3(0, .4, .75)
@@ -633,7 +639,7 @@ class Game
                 this.sliderPanel!.addControl(this.buttonPanel2)
 
                 if (this.selectedComponent) {
-                    this.sliderHeader!.text = this.selectedComponent.displayName + ": " + this.slider!.value;
+                    this.sliderHeader!.text = this.selectedComponent.displayName + ": " + this.slider!.value.toFixed(3);
                 }
                 
 
@@ -726,7 +732,7 @@ class Game
 
             this.kinematicsSliders.push(kSlider);
 
-            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i] + ": " + kSlider.value); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
+            var kSliderHeader = new TextBlock("kSliderHeader" + i, kinematicLabels[i] + ": " + kSlider.value.toFixed(3)); /*Control.AddHeader(xSlider, "xxxxxxxxxxxxx", "400px", { isHorizontal: true, controlFirst: false });*/
             // kSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
             kSliderHeader.height = "60px";
             kSliderHeader.fontSize = "48px";
@@ -739,24 +745,27 @@ class Game
             this.kinematicSliderHeaders.push(kSliderHeader);
         }
 
-
+        this.kinematicsSliders[0].onValueChangedObservable.add((value) => {
+            this.polarTransform!.position.x = value;
+            this.kinematicSliderHeaders[0].text = kinematicLabels[0] + ": " + value.toFixed(3);
+        })
         this.kinematicsSliders[1].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.y = value;
-            this.kinematicSliderHeaders[1].text = kinematicLabels[1] + ": " + value;
+            this.kinematicSliderHeaders[1].text = kinematicLabels[1] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[2].onValueChangedObservable.add((value) => {
             this.polarTransform!.position.z = value;
-            this.kinematicSliderHeaders[2].text = kinematicLabels[2] + ": " + value;
+            this.kinematicSliderHeaders[2].text = kinematicLabels[2] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[3].onValueChangedObservable.add((value) => {
             this.polarTransform!.rotation.x = -value * (Math.PI / 180)
             this.targetPolar = value * (Math.PI / 180);
-            this.kinematicSliderHeaders[3].text = kinematicLabels[3] + ": " + value;
+            this.kinematicSliderHeaders[3].text = kinematicLabels[3] + ": " + value.toFixed(3);
         })
         this.kinematicsSliders[4].onValueChangedObservable.add((value) => {
             this.targetAzimuth = -value * (Math.PI / 180);
             this.azimuthalTransform!.rotation.y = value * Math.PI / 180;
-            this.kinematicSliderHeaders[4].text = kinematicLabels[4] + ": " + value;
+            this.kinematicSliderHeaders[4].text = kinematicLabels[4] + ": " + value.toFixed(3);
         })
 
         var kButton = Button.CreateSimpleButton("kinematicsButton", "Go");
@@ -809,7 +818,7 @@ class Game
             {
                 // configurableMeshTransform.rotation.x = value * Math.PI / 180;
                 console.log("Slider changed to:", value);
-                this.sliderHeader!.text = this.selectedComponent.displayName + ": " + value;
+                this.sliderHeader!.text = this.selectedComponent.displayName + ": " + value.toFixed(3);
 
                 if (this.selectedComponent)
                 {
@@ -1123,6 +1132,10 @@ class Game
             });
         });
 
+        // Add menu transforms to a root node
+        configTransform.setParent(menuTransform);
+        sliderConfigTransform.setParent(menuTransform);
+
         this.scene.debugLayer.show(); 
     }
 
@@ -1361,7 +1374,7 @@ class Game
         }
         }
 
-        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName + ": " + this.slider!.value); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
+        var xSliderHeader = new TextBlock("xSliderHeader", component.displayName + ": " + this.slider!.value.toFixed(3)); // Control.AddHeader(this.slider!, component.name, "400px", {isHorizontal: true, controlFirst: false});
         xSliderHeader.horizontalAlignment = StackPanel.HORIZONTAL_ALIGNMENT_CENTER;
         xSliderHeader.height = "60px";
         xSliderHeader.fontSize = "48px";
@@ -1383,7 +1396,7 @@ class Game
     private update() : void
     {
         this.processControllerInput();
-        // this.updateMenuPosition();
+        // this.resetMenuPosition();
     }
 
 
@@ -1722,6 +1735,19 @@ class Game
         }
     }
 
+    private resetMenuPosition() {
+        this.menuTransform!.position = this.xrCamera!.getFrontPosition(1);
+        this.menuTransform!.position.y = 0;
+
+        var lookDir = this.xrCamera!.getForwardRay().direction;
+        if (lookDir.z < 0) {
+            this.menuTransform!.rotation.y = -Math.PI / 2 - Math.acos(-lookDir.x);
+
+        } else {
+            this.menuTransform!.rotation.y = Math.PI / 2 - Math.acos(lookDir.x);
+        }
+    }
+
     private updateMenuPosition()
     {
         this.buttonPanel!.position = this.xrCamera!.position;
@@ -1729,6 +1755,7 @@ class Game
 
     private processControllerInput()
     {
+        this.onLeftY(this.leftController ?.motionController?.getComponent("y-button"));
         this.onRightA(this.rightController?.motionController?.getComponent("a-button"));
         this.onLeftA(this.leftController?.motionController?.getComponent("x-button"));
         if (this.controllerMode && this.selectedComponent)
@@ -1924,16 +1951,19 @@ class Game
         }
     }
 
-    private onLeftA(component?: WebXRControllerComponent)
-    {  
-        if (this.mode == Mode.brain)
-        {
-            if(component?.changes.pressed?.current)
-        {
-            this.exitBrainMode();
+
+    private onLeftA(component?: WebXRControllerComponent) {
+        if (this.mode == Mode.brain) {
+            if (component ?.changes.pressed ?.current) {
+                this.exitBrainMode();
+            }
         }
+    }
+
+    private onLeftY(component?: WebXRControllerComponent) {
+        if (component ?.changes.pressed ?.current) {
+            this.resetMenuPosition();
         }
-        
     }
 
     private onRightA(component?: WebXRControllerComponent)
