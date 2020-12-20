@@ -382,16 +382,19 @@ class Game
 
         // Remove default teleportation
         xrHelper.teleportation.dispose();
+        //xrHelper.pointerSelection.detach();
 
         // Assign the left and right controllers to member variables
         xrHelper.input.onControllerAddedObservable.add((inputSource) => {
             if(inputSource.uniqueId.endsWith("right"))
             {
                 this.rightController = inputSource;
+
             }
             else 
             {
                 this.leftController = inputSource;
+
             }  
         });
 
@@ -403,7 +406,6 @@ class Game
 
             }
         });
-
 
         // SceneLoader.ImportMesh("", "assets/models/", "FiveProbeMachine.glb", this.scene, (meshes) => {
         //     meshes[0].name = "fiveProbe"
@@ -525,7 +527,7 @@ class Game
             this.constructHierarchy()
         });
 
-        SceneLoader.ImportMesh("", "assets/models/", "Head.glb", this.scene, (meshes) => {
+        SceneLoader.ImportMesh("", "assets/models/", "SimplifiedHead.glb", this.scene, (meshes) => {
             meshes[0].name = "head"
             meshes[0].position = new Vector3(0, 0.5, 4.5);
             meshes[0].scaling = new Vector3(0.01, 0.01, 0.01);
@@ -533,11 +535,11 @@ class Game
             this.rootHeadMesh = meshes[0];
             meshes.forEach((mesh) => {
                 console.log("loaded ", mesh.name, mesh.parent ?.id);
+                mesh.isPickable = false;
                 this.headMeshes.push(mesh);
             });
             
         });
-
 
         var menuTransform = new TransformNode("menuTransform");
         this.menuTransform = menuTransform;
